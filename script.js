@@ -1,5 +1,5 @@
 // ===== استيراد Firebase =====
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { initializeApp } from "firebase/app";
 import {
   getDatabase,
   ref,
@@ -10,16 +10,8 @@ import {
   orderByChild,
   limitToLast,
   remove,
-  onChildAdded,
-  equalTo,
   update
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
-import {
-  getStorage,
-  ref as storageRef,
-  uploadBytes,
-  getDownloadURL
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
+} from "firebase/database";
 import {
   getAuth,
   createUserWithEmailAndPassword,
@@ -28,37 +20,28 @@ import {
   onAuthStateChanged,
   reauthenticateWithCredential,
   EmailAuthProvider
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+} from "firebase/auth";
 
 // ===== إعدادات Firebase =====
 const firebaseConfig = {
-  apiKey: "AIzaSyBeor8MTz1uaQumT3C4FFE6M7FZisPvom0",
-  authDomain: "edulearn-platform-55b45.firebaseapp.com",
-  databaseURL:
-    "https://edulearn-platform-55b45-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "edulearn-platform-55b45",
-  storageBucket: "edulearn-platform-55b45.firebasestorage.app",
-  messagingSenderId: "866736202453",
-  appId: "1:866736202453:web:b81f59c7ed4f39e940385c"
+  apiKey: "AIzaSyD1QN_bG2U_eNJ-lH5xlCZK4qjxvbvJRU4",
+  authDomain: "chatapp-e8283.firebaseapp.com",
+  projectId: "chatapp-e8283",
+  storageBucket: "chatapp-e8283.firebasestorage.app",
+  messagingSenderId: "456910182070",
+  appId: "1:456910182070:web:2976378ec5e206a3867817"
 };
 
 // ===== تهيئة Firebase =====
 const app = initializeApp(firebaseConfig);
-const storage = getStorage(app);
 const auth = getAuth(app);
 const database = getDatabase(app);
 
 // ===== المتغيرات العامة =====
 let currentUser = null;
-let sections = ["home", "courses", "features", "forum", "adminPanel"];
+let sections = ["home", "courses", "features", "adminPanel"];
 let currentSectionIndex = 0;
 
-// ===== متغيرات مسجل الصوت =====
-let mediaRecorder = null;
-let audioChunks = [];
-let recordingSeconds = 0;
-let recordingInterval = null;
-let audioBlob = null;
 
 // ===== دوال شاشة التحميل والترحيب =====
 function hideLoadingScreen() {
@@ -94,7 +77,6 @@ window.addEventListener("load", () => {
   // تشغيل باقي الوظائف فوراً
   initObserver();
   createParticles();
-  initVoiceRecorder();
 });
 
 // إخفاء إجباري بعد 5 ثوانٍ كحد أقصى للطوارئ
@@ -145,403 +127,6 @@ function escapeHtml(t) {
   return d.innerHTML;
 }
 
-// ===== مسجل الصوت =====
-function initVoiceRecorder() {
-  const toggle = document.getElementById("recorder-toggle");
-  const vr = document.querySelector(".voice-recorder");
-  const timerEl = document.getElementById("timerDisplay");
-  const deleteBtn = document.querySelector(".delete-btn");
-  const sendVoiceBtn = document.querySelector(".send-voice-btn");
-  let waveInterval = null;
-
-  function randomizeWaves() {
-    if (!toggle.checked) return;
-    document.querySelectorAll(".wave-bar").forEach((b) => {
-      b.style.height = Math.floor(Math.random() * 26) + 6 + "px";
-    });
-  }
-
-  async function startRecording() {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorder = new MediaRecorder(stream);
-      audioChunks = [];
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) audioChunks.push(e.data);
-      };
-      mediaRecorder.onstop = () => {
-        audioBlob = new Blob(audioChunks, { type: "audio/webm" });
-        stream.getTracks().forEach((t) => t.stop());
-      };
-      mediaRecorder.start();
-      recordingSeconds = 0;
-      updateTimerDisplay();
-      recordingInterval = setInterval(() => {
-        recordingSeconds++;
-        if (recordingSeconds >= 3599) recordingSeconds = 3599;
-        updateTimerDisplay();
-      }, 1000);
-      waveInterval = setInterval(randomizeWaves, 280);
-      showToast("success", "🎙️ بدأ التسجيل", "يتم تسجيل الصوت الآن...");
-    } catch (e) {
-      showToast("error", "⚠️ خطأ", "تعذر الوصول إلى الميكروفون");
-      toggle.checked = false;
-      vr.classList.remove("recording");
-    }
-  }
-
-  function stopRecording() {
-    if (mediaRecorder && mediaRecorder.state !== "inactive")
-      mediaRecorder.stop();
-    if (recordingInterval) {
-      clearInterval(recordingInterval);
-      recordingInterval = null;
-    }
-    if (waveInterval) {
-      clearInterval(waveInterval);
-      waveInterval = null;
-    }
-    document.querySelectorAll(".wave-bar").forEach((b, i) => {
-      const h = [14, 22, 10, 28, 18, 12, 24, 16, 20];
-      b.style.height = h[i] + "px";
-    });
-  }
-
-  function updateTimerDisplay() {
-    const m = Math.floor(recordingSeconds / 60);
-    const s = recordingSeconds % 60;
-    timerEl.textContent = `${m}:${s < 10 ? "0" : ""}${s}`;
-  }
-
-  function resetRecorder() {
-    if (toggle.checked) {
-      toggle.checked = false;
-      vr.classList.remove("recording");
-      stopRecording();
-      recordingSeconds = 0;
-      updateTimerDisplay();
-      audioBlob = null;
-    }
-  }
-
-  toggle.addEventListener("change", function () {
-    if (this.checked) {
-      if (!currentUser) {
-        showToast("error", "⚠️ تنبيه", "يجب تسجيل الدخول لاستخدام مسجل الصوت");
-        this.checked = false;
-        return;
-      }
-      vr.classList.add("recording");
-      startRecording();
-    } else {
-      vr.classList.remove("recording");
-      stopRecording();
-    }
-  });
-
-  deleteBtn.addEventListener("click", (e) => {
-    e.preventDefault();
-    resetRecorder();
-    showToast("info", "🗑️ تم الحذف", "تم حذف التسجيل الصوتي");
-  });
-
-  if (!sendVoiceBtn) return;
-  sendVoiceBtn.addEventListener("click", async (e) => {
-    e.preventDefault();
-    if (!currentUser) {
-      showToast("error", "⚠️ تنبيه", "يجب تسجيل الدخول لإرسال رسالة صوتية");
-      openAuthModal();
-      return;
-    }
-
-    if (!audioBlob || audioBlob.size === 0) {
-      showToast("error", "⚠️ خطأ", "لا يوجد تسجيل صوتي للإرسال");
-      return;
-    }
-
-    if (audioBlob.size > 5 * 1024 * 1024) {
-      showToast("error", "⚠️ خطأ", "حجم التسجيل كبير جداً (الحد 5MB)");
-      return;
-    }
-
-    const sb = document.getElementById("forumSendBtn");
-    sb.disabled = true;
-    sb.innerHTML = '<span class="send-button-text">⏳ جاري الرفع...</span>';
-
-    try {
-      const fileName = `voice_${Date.now()}_${currentUser.uid}.webm`;
-      const fileRef = storageRef(storage, `voiceMessages/${fileName}`);
-      await uploadBytes(fileRef, audioBlob);
-      const audioUrl = await getDownloadURL(fileRef);
-
-      const refMsg = push(ref(database, "forumMessages"));
-      const data = {
-        id: refMsg.key,
-        text: `🎤 رسالة صوتية (${formatTime(recordingSeconds)})`,
-        audioUrl: audioUrl,
-        audioDuration: recordingSeconds,
-        senderId: currentUser.uid,
-        senderName: currentUser.name,
-        timestamp: Date.now(),
-        isAdmin: currentUser.isAdmin === true,
-        messageType: "voice"
-      };
-      await set(refMsg, data);
-      resetRecorder();
-      showToast("success", "✅ تم الإرسال", "تم إرسال الرسالة الصوتية بنجاح");
-      await loadMessages();
-    } catch (er) {
-      console.error(er);
-      showToast("error", "⚠️ خطأ", "حدث خطأ أثناء رفع الملف الصوتي");
-    } finally {
-      sb.disabled = false;
-      sb.innerHTML = '<span class="send-button-text">إرسال</span>';
-    }
-  });
-
-  function formatTime(sec) {
-    const m = Math.floor(sec / 60);
-    const s = sec % 60;
-    return `${m}:${s < 10 ? "0" : ""}${s}`;
-  }
-}
-
-// ===== دوال المنتدى =====
-async function deleteMessage(id, div) {
-  if (!currentUser) {
-    showToast("error", "⚠️ تنبيه", "يجب تسجيل الدخول للحذف");
-    return;
-  }
-  const isAdmin = currentUser.isAdmin === true;
-  if (!isAdmin) {
-    showToast("error", "⚠️ تنبيه", "المشرف فقط من يمكنه حذف الرسائل");
-    return;
-  }
-  if (confirm("🗑️ هل تريد حذف هذه الرسالة نهائياً؟")) {
-    try {
-      await remove(ref(database, `forumMessages/${id}`));
-      div.remove();
-      showToast("success", "🗑️ تم الحذف", "تم حذف الرسالة بنجاح");
-    } catch (e) {
-      showToast("error", "⚠️ خطأ", "حدث خطأ أثناء حذف الرسالة");
-    }
-  }
-}
-
-function displayMessage(msg) {
-  const c = document.getElementById("forumMessages");
-  if (!c) return;
-  if (c.querySelector(".forum-empty")) c.innerHTML = "";
-  const div = document.createElement("div");
-  div.className = "forum-message";
-  div.dataset.messageId = msg.id;
-  div.dataset.senderId = msg.senderId;
-  if (currentUser && msg.senderId === currentUser.uid)
-    div.classList.add("own-message");
-  const av = msg.senderName ? msg.senderName.charAt(0).toUpperCase() : "?";
-  const time = new Date(msg.timestamp).toLocaleTimeString("ar-EG", {
-    hour: "2-digit",
-    minute: "2-digit"
-  });
-  const date = new Date(msg.timestamp).toLocaleDateString("ar-EG", {
-    day: "numeric",
-    month: "numeric"
-  });
-  const badge = msg.isAdmin
-    ? ' <span class="verified-badge" title="مشرف موثوق"><span class="checkmark"></span></span>'
-    : "";
-  let content = "";
-  if (msg.messageType === "voice" && msg.audioUrl) {
-    content = `<div class="voice-message"><audio controls src="${msg.audioUrl}"></audio><span class="voice-duration">🎤 ${msg.text}</span></div>`;
-  } else {
-    content = escapeHtml(msg.text);
-  }
-  div.innerHTML = `<div class="forum-message-avatar">${av}</div><div class="forum-message-content"><div class="forum-message-name"><span>${escapeHtml(
-    msg.senderName
-  )}${badge}</span><span class="forum-message-time">${date} ${time}</span></div><div class="forum-message-text">${content}</div></div>`;
-  if (
-    currentUser &&
-    (currentUser.isAdmin || currentUser.uid === msg.senderId)
-  ) {
-    const btn = document.createElement("button");
-    btn.innerHTML = "🗑️";
-    btn.className = "delete-msg-btn";
-    btn.onclick = (e) => {
-      e.stopPropagation();
-      deleteMessage(msg.id, div);
-    };
-    div.appendChild(btn);
-  }
-  c.appendChild(div);
-  c.scrollTop = c.scrollHeight;
-}
-
-async function loadMessages() {
-  const c = document.getElementById("forumMessages");
-  if (!c) return;
-  try {
-    const snap = await get(
-      query(
-        ref(database, "forumMessages"),
-        orderByChild("timestamp"),
-        limitToLast(30)
-      )
-    );
-    const msgs = [];
-    snap.forEach((s) => {
-      const m = s.val();
-      if (m && m.id) msgs.push(m);
-    });
-    msgs.sort((a, b) => a.timestamp - b.timestamp);
-    if (msgs.length === 0) {
-      c.innerHTML =
-        '<div class="forum-empty">✨ لا توجد رسائل بعد... كن أول من يكتب!</div>';
-    } else {
-      c.innerHTML = "";
-      msgs.forEach((m) => displayMessage(m));
-    }
-  } catch (e) {
-    c.innerHTML = '<div class="forum-error">⚠️ حدث خطأ في تحميل الرسائل</div>';
-  }
-}
-
-let lastSendTime = 0;
-
-async function sendForumMessage() {
-  if (Date.now() - lastSendTime < 2000) {
-    showToast("error", "⏳ استنى شوية", "ممنوع إرسال رسائل بسرعة");
-    return;
-  }
-  if (!currentUser) {
-    showToast(
-      "error",
-      "⚠️ تنبيه",
-      "يجب تسجيل الدخول أولاً للمشاركة في المنتدى"
-    );
-    return;
-  }
-  if (currentUser && currentUser.approved === false) {
-    showToast(
-      "warning",
-      "⏳ في انتظار التفعيل",
-      "حسابك لم يتم تفعيله بعد من المشرف"
-    );
-    return;
-  }
-  const inp = document.getElementById("forumMessageInput");
-  const text = inp.value.trim();
-  if (!text) {
-    showToast("error", "⚠️ خطأ", "لا يمكن إرسال رسالة فارغة");
-    return;
-  }
-  if (text.length > 500) {
-    showToast("error", "⚠️ خطأ", "الرسالة طويلة جداً (حد أقصى 500 حرف)");
-    return;
-  }
-  const sb = document.getElementById("forumSendBtn");
-  sb.disabled = true;
-  sb.innerHTML = '<span class="send-button-text">جاري الإرسال...</span>';
-  try {
-    const refMsg = push(ref(database, "forumMessages"));
-    const data = {
-      id: refMsg.key,
-      text: text,
-      senderId: currentUser.uid,
-      senderName: currentUser.name,
-      timestamp: Date.now(),
-      isAdmin: currentUser.isAdmin === true,
-      messageType: "text"
-    };
-    await set(refMsg, data);
-    lastSendTime = Date.now();
-    inp.value = "";
-    document.getElementById("charCount").innerHTML = "0";
-    showToast("success", "✅ تم الإرسال", "تم إرسال رسالتك بنجاح");
-    await loadMessages();
-  } catch (e) {
-    showToast("error", "⚠️ خطأ", "حدث خطأ أثناء إرسال الرسالة");
-  } finally {
-    sb.disabled = false;
-    sb.innerHTML = '<span class="send-button-text">إرسال</span>';
-  }
-}
-
-let forumListenerRef = null;
-let forumCallback = null;
-
-function startAutoRefresh() {
-  if (forumListenerRef) return;
-  const messagesRef = query(
-    ref(database, "forumMessages"),
-    orderByChild("timestamp"),
-    limitToLast(50)
-  );
-  forumCallback = (snapshot) => {
-    const newMsg = snapshot.val();
-    if (newMsg && newMsg.id) {
-      const existing = document.querySelector(
-        `.forum-message[data-message-id="${newMsg.id}"]`
-      );
-      if (!existing) {
-        displayMessage(newMsg);
-      }
-    }
-  };
-  onChildAdded(messagesRef, forumCallback);
-  forumListenerRef = messagesRef;
-}
-
-import { off } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
-
-function stopAutoRefresh() {
-  if (forumListenerRef && forumCallback) {
-    off(forumListenerRef, "child_added", forumCallback);
-    forumListenerRef = null;
-    forumCallback = null;
-  }
-}
-
-function initForum() {
-  loadMessages();
-  startAutoRefresh();
-  updateForumUI();
-}
-
-function updateForumUI() {
-  const inp = document.getElementById("forumInputArea");
-  const warn = document.getElementById("forumLoginWarning");
-
-  if (currentUser) {
-    if (inp) inp.style.display = "flex";
-    if (warn) warn.style.display = "none";
-
-    const textarea = document.getElementById("forumMessageInput");
-    const sendBtn = document.getElementById("forumSendBtn");
-
-    if (currentUser.approved === false) {
-      if (textarea) {
-        textarea.disabled = true;
-        textarea.placeholder = "⏳ حسابك في انتظار تفعيل المشرف...";
-      }
-      if (sendBtn) {
-        sendBtn.disabled = true;
-        sendBtn.style.opacity = "0.5";
-      }
-    } else {
-      if (textarea) {
-        textarea.disabled = false;
-        textarea.placeholder = "اكتب رسالتك هنا...";
-      }
-      if (sendBtn) {
-        sendBtn.disabled = false;
-        sendBtn.style.opacity = "1";
-      }
-    }
-  } else {
-    if (inp) inp.style.display = "none";
-    if (warn) warn.style.display = "block";
-  }
-}
 
 // ===== إظهار لوحة المشرف للمشرف فقط =====
 function updateAdminPanelVisibility() {
@@ -692,12 +277,6 @@ function updateUserUI() {
       ?.addEventListener("click", confirmDeleteAccount);
     if (out) out.style.display = "flex";
     updateHeroButton();
-    if (document.getElementById("forum")) {
-      setTimeout(() => {
-        stopAutoRefresh();
-        initForum();
-      }, 500);
-    }
   } else {
     if (area) {
       area.innerHTML = `
@@ -750,31 +329,12 @@ document.getElementById("switchToLoginBtn")?.addEventListener("click", () => {
 document.getElementById("logoutBtnNav")?.addEventListener("click", async () => {
   await signOut(auth);
   showToast("success", "👋 وداعاً!", "تم تسجيل الخروج بنجاح");
-  if (document.getElementById("forum")) {
-    stopAutoRefresh();
-    initForum();
-  }
 });
 
-document
-  .getElementById("forumSendBtn")
-  ?.addEventListener("click", sendForumMessage);
-document
-  .getElementById("forumMessageInput")
-  ?.addEventListener("input", function () {
-    const c = this.value.length;
-    document.getElementById("charCount").innerHTML = c;
-    this.style.borderColor = c >= 480 ? "#ff6464" : "";
-  });
 document.getElementById("notifyMeBtn")?.addEventListener("click", () => {
   showToast("info", "📢 قريباً!", "سيتم إضافة الكورسات خلال أيام");
 });
-document
-  .getElementById("openAuthFromForumBtn")
-  ?.addEventListener("click", (e) => {
-    e.preventDefault();
-    openAuthModal();
-  });
+
 document.getElementById("toastCloseBtn")?.addEventListener("click", closeToast);
 document
   .getElementById("loginSubmitBtn2")
@@ -845,21 +405,11 @@ onAuthStateChanged(auth, async (u) => {
 
     updateUserUI();
     updateAdminPanelVisibility();
-    if (document.getElementById("forum")) {
-      setTimeout(() => {
-        stopAutoRefresh();
-        initForum();
-      }, 500);
-    }
     closeAuthModal();
   } else {
     currentUser = null;
     updateUserUI();
     updateAdminPanelVisibility();
-    if (document.getElementById("forum")) {
-      stopAutoRefresh();
-      initForum();
-    }
   }
 });
 
@@ -1083,18 +633,6 @@ async function rejectUser(userId, userName, userEmail) {
   if (!confirm(`⚠️ هل تريد حذف حساب ${userName} نهائياً؟`)) return;
 
   try {
-    const msgsSnap = await get(
-      query(
-        ref(database, "forumMessages"),
-        orderByChild("senderId"),
-        equalTo(userId)
-      )
-    );
-    const deletePromises = [];
-    msgsSnap.forEach((msg) => {
-      deletePromises.push(remove(ref(database, `forumMessages/${msg.key}`)));
-    });
-    await Promise.all(deletePromises);
 
     await set(ref(database, `deletedEmails/${userEmail.replace(/\./g, "_")}`), {
       email: userEmail,
@@ -1196,11 +734,7 @@ async function loadAdminStats() {
     let usersCount = 0;
     usersSnap.forEach(() => usersCount++);
 
-    const msgsSnap = await get(ref(database, "forumMessages"));
-    let msgsCount = 0;
-    msgsSnap.forEach(() => msgsCount++);
-
-    console.log(`📊 إحصائيات: ${usersCount} مستخدم, ${msgsCount} رسالة`);
+    console.log(`📊 إحصائيات: ${usersCount} مستخدم`);
   } catch (error) {
     console.error("خطأ في تحميل الإحصائيات:", error);
   }

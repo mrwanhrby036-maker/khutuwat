@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>خطوات نحو التميز</title>
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- ملف التنسيقات الخارجي -->
+  <link rel="stylesheet" href="style.css">
+
+  <!-- Firebase Import Map -->
+  <script type="importmap">
+    {
+            "imports": {
+                "firebase/app": "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js",
+                "firebase/auth": "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js",
+                "firebase/database": "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js"
+            }
+        }
+    </script>
+</head>
+
+<body>
+
+  <!-- ===== شاشة التحميل ===== -->
+  <div id="loadingScreenNew">
+    <div class="hamster-container">
+      <div aria-label="Orange and tan hamster running in a metal wheel" role="img" class="wheel-and-hamster">
+        <div class="wheel"></div>
+        <div class="hamster">
+          <div class="hamster__body">
+            <div class="hamster__head">
+              <div class="hamster__ear"></div>
+              <div class="hamster__eye"></div>
+              <div class="hamster__nose"></div>
+            </div>
+            <div class="hamster__limb hamster__limb--fr"></div>
+            <div class="hamster__limb hamster__limb--fl"></div>
+            <div class="hamster__limb hamster__limb--br"></div>
+            <div class="hamster__limb hamster__limb--bl"></div>
+            <div class="hamster__tail"></div>
+          </div>
+        </div>
+        <div class="spoke"></div>
+      </div>
+      <p class="loading-text">جاري التحميل...</p>
+    </div>
+  </div>
+
+  <!-- ===== شاشة الترحيب ===== -->
+  <div id="welcomeScreen">
+    <div class="welcome-content">
+      <img src="https://i.ibb.co/xSBCKxt1/New-Profile-hero-bd0ed24ff94f80d4b949b15350f35824.jpg" alt="مرحباً" class="welcome-image">
+      <h1 class="welcome-title">أهلاً بك في منصة</h1>
+      <h2 class="welcome-subtitle">خطوات نحو التميز</h2>
+      <button class="welcome-btn" id="welcomeContinueBtn">متابعة</button>
+    </div>
+  </div>
+
+  <!-- ===== شريط التنقل ===== -->
+  <nav id="navbar">
+    <div class="nav-container">
+      <div class="nav-logo">
+        <span class="logo-icon">🎓</span>
+        <span class="logo-text">خطوات نحو التميز</span>
+      </div>
+
+      <ul class="nav-links" id="navLinks">
+        <li><a href="#home" class="nav-link active" data-section="home">الرئيسية</a></li>
+        <li><a href="#courses" class="nav-link" data-section="courses">الكورسات</a></li>
+        <li><a href="#features" class="nav-link" data-section="features">المميزات</a></li>
+        <li><a href="#forum" class="nav-link" data-section="forum">💬 المنتدى</a></li>
+        <li><a href="#adminPanel" class="nav-link" data-section="adminPanel" id="adminNavLink" style="display: none;">👑 لوحة المشرف</a></li>
+
+      </ul>
+
+      <div class="nav-btns">
+        <div id="userInfoArea" class="user-info-area">
+          <button class="btn btn-outline" id="loginBtn">
+            <i class="fas fa-sign-in-alt"></i><span>دخول</span>
+          </button>
+          <button class="btn btn-gold" id="registerBtn">
+            <i class="fas fa-user-plus"></i><span>ابدأ مجاناً</span>
+          </button>
+        </div>
+        <button class="btn btn-outline" id="logoutBtnNav" style="display: none;">
+          <i class="fas fa-sign-out-alt"></i><span>خروج</span>
+        </button>
+      </div>
+
+      <button class="hamburger" id="hamburger">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ===== القسم الرئيسي (Hero) ===== -->
+  <section class="hero" id="home">
+    <div class="hero-particles" id="particles"></div>
+    <div class="hero-content fade-up">
+      <div class="hero-badge">
+        <i class="fas fa-star"></i>
+        <span>المنصة التعليمية العربية الأولى</span>
+      </div>
+      <h1 class="hero-title">خطوات نحو <span class="gold-text">التميز</span></h1>
+      <p class="hero-desc">رحلتك نحو الاحتراف تبدأ هنا. تعلم من أفضل المدربين العرب في مجالات البرمجة والتصميم والتسويق.</p>
+      <div class="hero-btns" id="heroBtnsContainer">
+        <button class="btn btn-gold btn-lg" id="startBtn">
+          <i class="fas fa-rocket"></i>ابدأ رحلتك الآن
+        </button>
+      </div>
+    </div>
+    <div class="hero-image fade-up">
+      <div class="hero-circle" style="background-image: url('https://i.ibb.co/HDY0zgw2/file-enc.jpg'); background-size: cover; background-position: center;"></div>
+    </div>
+  </section>
+
+  <!-- ===== قسم الكورسات ===== -->
+  <section class="section" id="courses">
+    <div class="container">
+      <div class="section-head fade-up">
+        <span class="section-tag">📚 الكورسات</span>
+        <h2 class="section-title">اكتشف <span class="gold-text">كورساتنا</span></h2>
+        <p class="section-desc">قريباً.. سيتم إضافة الكورسات</p>
+      </div>
+      <div class="courses-empty fade-up">
+        <div class="empty-icon">📖</div>
+        <h3>لا توجد كورسات حالياً</h3>
+        <p>سيتم إضافة الكورسات قريباً، تابعونا!</p>
+        <button class="btn btn-gold" id="notifyMeBtn">
+          <i class="fas fa-bell"></i>أعلمني عند الإضافة
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== قسم المميزات ===== -->
+  <section class="section section-dark" id="features">
+    <div class="container">
+      <div class="section-head fade-up">
+        <span class="section-tag">⭐ لماذا نحن</span>
+        <h2 class="section-title">مميزات <span class="gold-text">المنصة</span></h2>
+        <p class="section-desc">كل ما تحتاجه لرحلة تعليمية ناجحة في مكان واحد</p>
+      </div>
+      <div class="features-grid">
+        <div class="feature-card fade-up">
+          <div class="feat-icon gold-bg"><i class="fas fa-video"></i></div>
+          <h3>فيديوهات عالية الجودة</h3>
+          <p>محتوى مرئي احترافي بدقة HD يمكنك مشاهدته في أي وقت</p>
+        </div>
+        <div class="feature-card fade-up">
+          <div class="feat-icon"><i class="fas fa-users"></i></div>
+          <h3>مجتمع تعليمي</h3>
+          <p>انضم لمجتمع من الطلاب وتبادل الخبرات والمعرفة</p>
+        </div>
+        <div class="feature-card fade-up">
+          <div class="feat-icon"><i class="fas fa-mobile-alt"></i></div>
+          <h3>متعدد الأجهزة</h3>
+          <p>تعلم من أي جهاز في أي وقت ومن أي مكان</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== قسم المنتدى ===== -->
+  <section class="section" id="forum">
+    <div class="container">
+      <div class="section-head fade-up">
+        <span class="section-tag">💬 المنتدى</span>
+        <h2 class="section-title">نقاشات <span class="gold-text">الطلاب</span></h2>
+        <p class="section-desc">تواصل مع زملائك وشارك أفكارك - يتم تحديث الرسائل تلقائياً</p>
+      </div>
+      <div class="forum-container fade-up">
+        <div class="forum-messages" id="forumMessages">
+          <div class="forum-loading">جاري تحميل الرسائل...</div>
+        </div>
+        <div class="forum-input-area" id="forumInputArea">
+          <textarea id="forumMessageInput" placeholder="اكتب رسالتك هنا..." rows="3" maxlength="500"></textarea>
+
+          <!-- مسجل الصوت -->
+          <div class="voice-recorder-wrapper">
+            <div class="voice-recorder" id="voiceRecorder">
+              <input type="checkbox" id="recorder-toggle" style="display: none;">
+              <div class="recorder-inner">
+                <label for="recorder-toggle" class="mic-button" title="اضغط للتسجيل">
+                  <span class="mic-icon">
+                    <svg class="mic-svg" viewBox="0 0 24 24">
+                      <path d="M12 16c-2.206 0-4-1.794-4-4V6c0-2.206 1.794-4 4-4s4 1.794 4 4v6c0 2.206-1.794 4-4 4zm8-4c0 4.418-3.582 8-8 8s-8-3.582-8-8h2c0 3.309 2.691 6 6 6s6-2.691 6-6h2z" />
+                      <path d="M12 18c-2.206 0-4-1.794-4-4v-1h2v1c0 1.103.897 2 2 2s2-.897 2-2v-1h2v1c0 2.206-1.794 4-4 4z" />
+                    </svg>
+                    <svg class="stop-svg" viewBox="0 0 24 24">
+                      <rect x="7" y="7" width="10" height="10" rx="1.5" />
+                    </svg>
+                  </span>
+                </label>
+                <div class="recording-info">
+                  <div class="waveform">
+                    <div class="wave-bar" style="height: 14px;"></div>
+                    <div class="wave-bar" style="height: 22px;"></div>
+                    <div class="wave-bar" style="height: 10px;"></div>
+                    <div class="wave-bar" style="height: 28px;"></div>
+                    <div class="wave-bar" style="height: 18px;"></div>
+                    <div class="wave-bar" style="height: 12px;"></div>
+                    <div class="wave-bar" style="height: 24px;"></div>
+                    <div class="wave-bar" style="height: 16px;"></div>
+                    <div class="wave-bar" style="height: 20px;"></div>
+                  </div>
+                  <span class="timer" id="timerDisplay">0:00</span>
+                  <span class="hint-text">اضغط للتسجيل</span>
+                </div>
+                <div class="action-buttons">
+                  <button class="delete-btn" title="حذف التسجيل">
+                    <svg viewBox="0 0 24 24">
+                      <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
+                    </svg>
+                  </button>
+                  <button class="send-voice-btn" title="إرسال التسجيل">
+                    <svg viewBox="0 0 24 24">
+                      <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              <div class="progress-container">
+                <div class="progress-bar"></div>
+              </div>
+            </div>
+          </div>
+
+          <button class="send-button" id="forumSendBtn">
+            <span class="send-button-text">إرسال</span>
+          </button>
+          <div class="forum-char-count">
+            <span id="charCount">0</span>/500
+          </div>
+        </div>
+        <div class="forum-login-warning" id="forumLoginWarning" style="display: none;">
+          <p>⚠️ يجب تسجيل الدخول أولاً للمشاركة في المنتدى</p>
+          <button class="btn btn-outline" id="openAuthFromForumBtn">تسجيل الدخول</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== لوحة تحكم المشرف ===== -->
+  <section class="section" id="adminPanel" style="display: none;">
+    <div class="container">
+      <div class="section-head fade-up">
+        <span class="section-tag">👑 لوحة المشرف</span>
+        <h2 class="section-title">لوحة <span class="gold-text">التحكم</span></h2>
+        <p class="section-desc">مرحباً أيها المشرف، هذه الصفحة خاصة بك فقط</p>
+      </div>
+      <div class="admin-card fade-up">
+        <i class="fas fa-shield-alt"></i>
+        <h3>صلاحية المشرف</h3>
+        <p>أنت الآن تمتلك صلاحية حذف أي رسالة في المنتدى</p>
+      </div>
+
+      <div class="pending-users-section fade-up">
+        <h3><i class="fas fa-user-plus"></i> طلبات التسجيل الجديدة</h3>
+        <div id="pendingUsersContainer">
+          <div class="loading">جاري تحميل الطلبات...</div>
+        </div>
+      </div>
+
+      <div class="admin-notifications-section fade-up">
+        <h3><i class="fas fa-bell"></i> الإشعارات</h3>
+        <div id="adminNotificationsContainer">
+          <div class="loading">جاري تحميل الإشعارات...</div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ===== تذييل الصفحة ===== -->
+  <footer>
+    <div class="container">
+      <div class="footer-simple">
+        <div class="footer-brand">
+          <div class="nav-logo" style="margin-bottom: 15px;">
+            <span class="logo-icon">🎓</span>
+            <span class="logo-text">خطوات نحو التميز</span>
+          </div>
+        </div>
+        <div class="footer-whatsapp">
+          <div class="whatsapp-icon-wrapper" onclick="window.open('https://chat.whatsapp.com/Cca3rywjDDj2FGClwsFwZy','_blank')">
+            <div class="icon-shadow"></div>
+            <div class="whatsapp-icon">
+              <div class="glass-reflection"></div>
+              <div class="inner-glow"></div>
+              <div class="phone-icon">
+                <svg class="phone-svg" viewBox="0 0 24 24">
+                  <path d="M19.95 16.05C18.75 14.85 17.35 14 15.8 13.5C15.3 13.35 14.75 13.5 14.4 13.85L12.85 15.4C11.65 14.85 10.5 14.15 9.4 13.25C8.3 12.35 7.35 11.35 6.6 10.25L8.15 8.7C8.5 8.35 8.65 7.8 8.5 7.3C8 5.75 7.15 4.35 5.95 3.15C5.6 2.8 5.1 2.65 4.65 2.75C3.7 3.05 2.75 3.4 1.95 3.9C1.35 4.25 1 4.85 1 5.5C1 14.9 9.1 23 18.5 23C19.15 23 19.75 22.65 20.1 22.05C20.6 21.25 20.95 20.3 21.25 19.35C21.35 18.9 21.2 18.4 20.85 18.05L19.95 16.05Z" />
+                </svg>
+              </div>
+              <div class="signal-dots">
+                <span class="dot"></span>
+                <span class="dot"></span>
+                <span class="dot"></span>
+              </div>
+            </div>
+            <div class="caption">WhatsApp</div>
+          </div>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>© 2026 خطوات نحو التميز. جميع الحقوق محفوظة</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ===== نافذة تسجيل الدخول / إنشاء حساب ===== -->
+  <div class="modal-overlay" id="authModalOverlay" style="display: none;">
+    <div class="modal-box">
+      <button class="modal-close" id="closeAuthModalBtn">&times;</button>
+      <div id="authFormContainer">
+        <!-- نموذج تسجيل الدخول -->
+        <form class="auth-form" id="loginFormElement" onsubmit="return false;">
+          <p class="auth-title">تسجيل الدخول</p>
+          <p class="auth-message">أهلاً بعودتك! سجل دخولك للمتابعة</p>
+          <label>
+            <input required placeholder=" " type="email" class="input" id="loginEmail">
+            <span>البريد الإلكتروني</span>
+          </label>
+          <label>
+            <input required placeholder=" " type="password" class="input" id="loginPassword">
+            <span>كلمة المرور</span>
+          </label>
+          <button class="auth-submit" id="loginSubmitBtn2">دخول</button>
+          <p class="auth-signin">ليس لديك حساب؟ <a id="switchToRegisterBtn">إنشاء حساب</a></p>
+        </form>
+
+        <!-- نموذج إنشاء الحساب -->
+        <form class="auth-form" id="registerFormElement" onsubmit="return false;" style="display: none;">
+          <p class="auth-title">إنشاء حساب</p>
+          <p class="auth-message">سجل الآن واحصل على وصول كامل</p>
+          <div class="flex">
+            <label>
+              <input required placeholder=" " type="text" class="input" id="regFirstName">
+              <span>الاسم الأول</span>
+            </label>
+            <label>
+              <input required placeholder=" " type="text" class="input" id="regLastName">
+              <span>الاسم الأخير</span>
+            </label>
+          </div>
+          <label>
+            <input required placeholder=" " type="email" class="input" id="regEmail">
+            <span>البريد الإلكتروني</span>
+          </label>
+          <label>
+            <input required placeholder=" " type="password" class="input" id="regPassword">
+            <span>كلمة المرور</span>
+          </label>
+          <label>
+            <input required placeholder=" " type="password" class="input" id="regConfirmPassword">
+            <span>تأكيد كلمة المرور</span>
+          </label>
+          <label>
+            <input placeholder=" " type="tel" class="input" id="regPhone">
+            <span>رقم الهاتف (اختياري)</span>
+          </label>
+          <button class="auth-submit" id="registerSubmitBtn2">تسجيل</button>
+          <p class="auth-signin">لديك حساب بالفعل؟ <a id="switchToLoginBtn">تسجيل الدخول</a></p>
+        </form>
+      </div>
+    </div>
+  </div>
+  <!-- ===== رسائل التنبيه (Toast) ===== -->
+  <div class="toast" id="toast">
+    <div class="toast-icon" id="toastIcon"><i class="fas fa-check"></i></div>
+    <div class="toast-body">
+      <div class="toast-title" id="toastTitle"></div>
+      <div class="toast-msg" id="toastMsg"></div>
+    </div>
+    <button class="toast-close" id="toastCloseBtn"><i class="fas fa-times"></i></button>
+  </div>
+
+  <!-- ===== زر العودة للأعلى ===== -->
+  <button class="scroll-top" id="scrollTopBtn"><i class="fas fa-arrow-up"></i></button>
+
+  <!-- ملف JavaScript الخارجي -->
+
+  <script type="module" src="script.js"></script>
+
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a2b2a06ecb4fe1b2',t:'MTc4NjczODQ3NQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+
+</html>

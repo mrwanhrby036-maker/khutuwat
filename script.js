@@ -1,5 +1,5 @@
 // ===== استيراد Firebase =====
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { initializeApp } from "firebase/app";
 import {
   getDatabase,
   ref,
@@ -14,13 +14,13 @@ import {
   equalTo,
   update,
   off
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+} from "firebase/database";
 import {
   getStorage,
   ref as storageRef,
   uploadBytes,
   getDownloadURL
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
+} from "firebase/storage";
 import {
   getAuth,
   createUserWithEmailAndPassword,
@@ -29,7 +29,7 @@ import {
   onAuthStateChanged,
   reauthenticateWithCredential,
   EmailAuthProvider
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+} from "firebase/auth";
 
 // ===== إعدادات Firebase =====
 const firebaseConfig = {

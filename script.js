@@ -12,7 +12,8 @@ import {
   remove,
   onChildAdded,
   equalTo,
-  update
+  update,
+  off
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 import {
   getStorage,
@@ -32,14 +33,12 @@ import {
 
 // ===== إعدادات Firebase =====
 const firebaseConfig = {
-  apiKey: "AIzaSyBeor8MTz1uaQumT3C4FFE6M7FZisPvom0",
-  authDomain: "edulearn-platform-55b45.firebaseapp.com",
-  databaseURL:
-    "https://edulearn-platform-55b45-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "edulearn-platform-55b45",
-  storageBucket: "edulearn-platform-55b45.firebasestorage.app",
-  messagingSenderId: "866736202453",
-  appId: "1:866736202453:web:b81f59c7ed4f39e940385c"
+  apiKey: "AIzaSyD1QN_bG2U_eNJ-lH5xlCZK4qjxvbvJRU4",
+  authDomain: "chatapp-e8283.firebaseapp.com",
+  projectId: "chatapp-e8283",
+  storageBucket: "chatapp-e8283.firebasestorage.app",
+  messagingSenderId: "456910182070",
+  appId: "1:456910182070:web:2976378ec5e206a3867817"
 };
 
 // ===== تهيئة Firebase =====
@@ -490,8 +489,6 @@ function startAutoRefresh() {
   onChildAdded(messagesRef, forumCallback);
   forumListenerRef = messagesRef;
 }
-
-import { off } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
 function stopAutoRefresh() {
   if (forumListenerRef && forumCallback) {

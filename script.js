@@ -586,6 +586,86 @@ function toggleVideoFullscreen() {
   }
 }
 
+// ===== احتفال نجاح الدخول للكورسات =====
+let confettiRAF = null;
+
+function playEnterCelebration() {
+  const ov = document.getElementById("caCelebrate");
+  if (!ov) {
+    openCourseArea();
+    return;
+  }
+  ov.classList.add("show");
+  try {
+    startConfetti();
+  } catch (e) {
+    console.error(e);
+  }
+  setTimeout(() => {
+    ov.classList.remove("show");
+    stopConfetti();
+    openCourseArea();
+    showToast("success", "✅ أهلاً بيك!", "تم تسجيل الدخول بنجاح");
+  }, 2300);
+}
+
+function startConfetti() {
+  const cv = document.getElementById("celebrateCanvas");
+  if (!cv) return;
+  const ctx = cv.getContext("2d");
+  const DPR = Math.min(window.devicePixelRatio || 1, 2);
+  const W = window.innerWidth, H = window.innerHeight;
+  cv.width = W * DPR;
+  cv.height = H * DPR;
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+
+  const COLORS = ["#ffd700", "#ffa500", "#ffe55c", "#ffffff", "#42abff"];
+  const parts = Array.from({ length: 150 }, () => {
+    const a = Math.random() * Math.PI * 2;
+    const sp = Math.random() * 7 + 3;
+    return {
+      x: W / 2,
+      y: H * 0.42,
+      vx: Math.cos(a) * sp,
+      vy: Math.sin(a) * sp - 3.5,
+      g: 0.13,
+      w: Math.random() * 8 + 4,
+      h: Math.random() * 4 + 2,
+      rot: Math.random() * Math.PI,
+      vr: (Math.random() - 0.5) * 0.25,
+      c: COLORS[(Math.random() * COLORS.length) | 0]
+    };
+  });
+  const t0 = performance.now();
+
+  function frame(now) {
+    const t = now - t0;
+    ctx.clearRect(0, 0, W, H);
+    for (const p of parts) {
+      p.vy += p.g;
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vx *= 0.99;
+      p.rot += p.vr;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rot);
+      ctx.globalAlpha = Math.max(0, 1 - t / 2200);
+      ctx.fillStyle = p.c;
+      ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+      ctx.restore();
+    }
+    if (t < 2300) confettiRAF = requestAnimationFrame(frame);
+  }
+  confettiRAF = requestAnimationFrame(frame);
+}
+
+function stopConfetti() {
+  if (confettiRAF) cancelAnimationFrame(confettiRAF);
+  const cv = document.getElementById("celebrateCanvas");
+  if (cv) cv.getContext("2d").clearRect(0, 0, cv.width, cv.height);
+}
+
 function closeCourseArea() {
   const area = document.getElementById("courseArea");
   if (!area) return;
@@ -779,8 +859,7 @@ onAuthStateChanged(auth, (u) => {
     // لو فتح تسجيل الدخول عشان يدخل كورس → دخّله على طول
     if (pendingCourseEnter) {
       pendingCourseEnter = false;
-      openCourseArea();
-      showToast("success", "✅ أهلاً بيك!", "تم تسجيل الدخول بنجاح");
+      playEnterCelebration();
     }
   }
 });

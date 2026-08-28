@@ -1745,3 +1745,130 @@ body.revealed .hero-image {
     font-size: 13px;
   }
 }
+
+/* ===== احتفال نجاح الدخول ===== */
+#caCelebrate {
+  position: fixed;
+  inset: 0;
+  z-index: 6500;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(ellipse at center, rgba(22, 17, 8, 0.88), rgba(0, 0, 0, 0.94));
+  backdrop-filter: blur(6px);
+}
+
+#caCelebrate.show {
+  display: flex;
+}
+
+#celebrateCanvas {
+  position: absolute;
+  inset: 0;
+}
+
+.celebrate-card {
+  position: relative;
+  text-align: center;
+  padding: 20px;
+  animation: celeCardIn 0.75s cubic-bezier(0.2, 1.5, 0.4, 1) both;
+}
+
+@keyframes celeCardIn {
+  from { opacity: 0; transform: translateY(40px) scale(0.6); }
+  to { opacity: 1; transform: none; }
+}
+
+.celebrate-badge {
+  width: 110px;
+  height: 110px;
+  margin: 0 auto 18px;
+}
+
+.celebrate-badge svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.celebrate-badge circle {
+  fill: none;
+  stroke: var(--gold);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-dasharray: 151;
+  stroke-dashoffset: 151;
+  transform: rotate(-90deg);
+  transform-origin: center;
+  filter: drop-shadow(0 0 12px rgba(255, 215, 0, 0.6));
+  animation: drawStroke 0.7s ease 0.25s forwards;
+}
+
+.celebrate-badge path {
+  fill: none;
+  stroke: var(--gold);
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 40;
+  stroke-dashoffset: 40;
+  filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.7));
+  animation: drawStroke 0.45s ease 0.85s forwards;
+}
+
+@keyframes drawStroke {
+  to { stroke-dashoffset: 0; }
+}
+
+.celebrate-card h2 {
+  color: var(--gold);
+  font-size: clamp(24px, 6vw, 40px);
+  font-weight: 900;
+  margin-bottom: 8px;
+  text-shadow: 0 0 24px rgba(255, 165, 0, 0.45);
+}
+
+.celebrate-card p {
+  color: var(--gray-light);
+  font-size: 16px;
+}
+
+/* ===== دخول عناصر الكورسات بالتدريج ===== */
+@keyframes caRise {
+  from { opacity: 0; transform: translateY(26px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+
+#courseArea.open .ca-back {
+  animation: caRise 0.5s ease 0.05s both;
+}
+
+#courseArea.open .ca-welcome {
+  animation: caRise 0.6s cubic-bezier(0.2, 0.9, 0.3, 1) 0.05s both;
+}
+
+#courseArea.open .ca-grid .ca-pick-card {
+  animation: caRise 0.6s cubic-bezier(0.2, 0.9, 0.3, 1) both;
+}
+
+#courseArea.open .ca-grid .ca-pick-card:nth-child(1) { animation-delay: 0.12s; }
+#courseArea.open .ca-grid .ca-pick-card:nth-child(2) { animation-delay: 0.2s; }
+#courseArea.open .ca-grid .ca-pick-card:nth-child(3) { animation-delay: 0.28s; }
+#courseArea.open .ca-grid .ca-pick-card:nth-child(4) { animation-delay: 0.36s; }
+#courseArea.open .ca-grid .ca-pick-card:nth-child(5) { animation-delay: 0.44s; }
+#courseArea.open .ca-grid .ca-pick-card:nth-child(6) { animation-delay: 0.52s; }
+
+#courseArea.open .ca-course {
+  animation: caRise 0.6s cubic-bezier(0.2, 0.9, 0.3, 1) 0.12s both;
+}
+
+#courseArea.open .lesson-row {
+  animation: caRise 0.5s ease both;
+}
+
+#courseArea.open .lesson-row:nth-child(1) { animation-delay: 0.15s; }
+#courseArea.open .lesson-row:nth-child(2) { animation-delay: 0.22s; }
+#courseArea.open .lesson-row:nth-child(3) { animation-delay: 0.29s; }
+#courseArea.open .lesson-row:nth-child(4) { animation-delay: 0.36s; }
+#courseArea.open .lesson-row:nth-child(5) { animation-delay: 0.43s; }
+#courseArea.open .lesson-row:nth-child(6) { animation-delay: 0.5s; }

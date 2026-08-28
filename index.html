@@ -12,53 +12,24 @@
   <!-- ملف التنسيقات الخارجي -->
   <link rel="stylesheet" href="style.css">
 
-  <!-- Firebase Import Map -->
-  <script type="importmap">
-    {
-            "imports": {
-                "firebase/app": "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js",
-                "firebase/auth": "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js",
-                "firebase/database": "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js"
-            }
-        }
-    </script>
 </head>
 
 <body>
 
-  <!-- ===== شاشة التحميل ===== -->
-  <div id="loadingScreenNew">
-    <div class="hamster-container">
-      <div aria-label="Orange and tan hamster running in a metal wheel" role="img" class="wheel-and-hamster">
-        <div class="wheel"></div>
-        <div class="hamster">
-          <div class="hamster__body">
-            <div class="hamster__head">
-              <div class="hamster__ear"></div>
-              <div class="hamster__eye"></div>
-              <div class="hamster__nose"></div>
-            </div>
-            <div class="hamster__limb hamster__limb--fr"></div>
-            <div class="hamster__limb hamster__limb--fl"></div>
-            <div class="hamster__limb hamster__limb--br"></div>
-            <div class="hamster__limb hamster__limb--bl"></div>
-            <div class="hamster__tail"></div>
-          </div>
-        </div>
-        <div class="spoke"></div>
-      </div>
-      <p class="loading-text">جاري التحميل...</p>
+  <!-- ===== مقدمة الفضاء الذهبي 3D ===== -->
+  <div id="intro3d">
+    <canvas id="introCanvas"></canvas>
+    <div class="intro-core">
+      <div class="intro-orb"></div>
+      <div class="intro-logo">🎓</div>
+      <h1 class="intro-title">
+        <span class="w">خطوات</span>
+        <span class="w">نحو</span>
+        <span class="w">التميز</span>
+      </h1>
+      <p class="intro-tag">تعلّم <span>✦</span> تميّز <span>✦</span> انطلق</p>
     </div>
-  </div>
-
-  <!-- ===== شاشة الترحيب ===== -->
-  <div id="welcomeScreen">
-    <div class="welcome-content">
-      <img src="https://i.ibb.co/xSBCKxt1/New-Profile-hero-bd0ed24ff94f80d4b949b15350f35824.jpg" alt="مرحباً" class="welcome-image">
-      <h1 class="welcome-title">أهلاً بك في منصة</h1>
-      <h2 class="welcome-subtitle">خطوات نحو التميز</h2>
-      <button class="welcome-btn" id="welcomeContinueBtn">متابعة</button>
-    </div>
+    <button id="introSkipBtn">تخطي المقدمة ⏭</button>
   </div>
 
   <!-- ===== شريط التنقل ===== -->
@@ -73,18 +44,12 @@
         <li><a href="#home" class="nav-link active" data-section="home">الرئيسية</a></li>
         <li><a href="#courses" class="nav-link" data-section="courses">الكورسات</a></li>
         <li><a href="#features" class="nav-link" data-section="features">المميزات</a></li>
-        <li><a href="#forum" class="nav-link" data-section="forum">💬 المنتدى</a></li>
-        <li><a href="#adminPanel" class="nav-link" data-section="adminPanel" id="adminNavLink" style="display: none;">👑 لوحة المشرف</a></li>
-
       </ul>
 
       <div class="nav-btns">
         <div id="userInfoArea" class="user-info-area">
           <button class="btn btn-outline" id="loginBtn">
             <i class="fas fa-sign-in-alt"></i><span>دخول</span>
-          </button>
-          <button class="btn btn-gold" id="registerBtn">
-            <i class="fas fa-user-plus"></i><span>ابدأ مجاناً</span>
           </button>
         </div>
         <button class="btn btn-outline" id="logoutBtnNav" style="display: none;">
@@ -125,14 +90,15 @@
       <div class="section-head fade-up">
         <span class="section-tag">📚 الكورسات</span>
         <h2 class="section-title">اكتشف <span class="gold-text">كورساتنا</span></h2>
-        <p class="section-desc">قريباً.. سيتم إضافة الكورسات</p>
+        <p class="section-desc">كورسات مغلقة لأعضاء المنصة — الدخول بالبيانات اللي وصلتك</p>
       </div>
-      <div class="courses-empty fade-up">
-        <div class="empty-icon">📖</div>
-        <h3>لا توجد كورسات حالياً</h3>
-        <p>سيتم إضافة الكورسات قريباً، تابعونا!</p>
-        <button class="btn btn-gold" id="notifyMeBtn">
-          <i class="fas fa-bell"></i>أعلمني عند الإضافة
+      <div class="course-cards fade-up" id="courseCards"></div>
+      <div class="courses-notify fade-up">
+        <button class="btn btn-gold" id="demoCourseBtn">
+          <i class="fas fa-flask"></i>معاينة تجريبية لصفحة الكورس (مؤقتة)
+        </button>
+        <button class="btn btn-outline" id="notifyMeBtn">
+          <i class="fas fa-bell"></i>أعلمني عند إضافة كورسات جديدة
         </button>
       </div>
     </div>
@@ -163,117 +129,6 @@
           <p>تعلم من أي جهاز في أي وقت ومن أي مكان</p>
         </div>
       </div>
-    </div>
-  </section>
-
-  <!-- ===== قسم المنتدى ===== -->
-  <section class="section" id="forum">
-    <div class="container">
-      <div class="section-head fade-up">
-        <span class="section-tag">💬 المنتدى</span>
-        <h2 class="section-title">نقاشات <span class="gold-text">الطلاب</span></h2>
-        <p class="section-desc">تواصل مع زملائك وشارك أفكارك - يتم تحديث الرسائل تلقائياً</p>
-      </div>
-      <div class="forum-container fade-up">
-        <div class="forum-messages" id="forumMessages">
-          <div class="forum-loading">جاري تحميل الرسائل...</div>
-        </div>
-        <div class="forum-input-area" id="forumInputArea">
-          <textarea id="forumMessageInput" placeholder="اكتب رسالتك هنا..." rows="3" maxlength="500"></textarea>
-
-          <!-- مسجل الصوت -->
-          <div class="voice-recorder-wrapper">
-            <div class="voice-recorder" id="voiceRecorder">
-              <input type="checkbox" id="recorder-toggle" style="display: none;">
-              <div class="recorder-inner">
-                <label for="recorder-toggle" class="mic-button" title="اضغط للتسجيل">
-                  <span class="mic-icon">
-                    <svg class="mic-svg" viewBox="0 0 24 24">
-                      <path d="M12 16c-2.206 0-4-1.794-4-4V6c0-2.206 1.794-4 4-4s4 1.794 4 4v6c0 2.206-1.794 4-4 4zm8-4c0 4.418-3.582 8-8 8s-8-3.582-8-8h2c0 3.309 2.691 6 6 6s6-2.691 6-6h2z" />
-                      <path d="M12 18c-2.206 0-4-1.794-4-4v-1h2v1c0 1.103.897 2 2 2s2-.897 2-2v-1h2v1c0 2.206-1.794 4-4 4z" />
-                    </svg>
-                    <svg class="stop-svg" viewBox="0 0 24 24">
-                      <rect x="7" y="7" width="10" height="10" rx="1.5" />
-                    </svg>
-                  </span>
-                </label>
-                <div class="recording-info">
-                  <div class="waveform">
-                    <div class="wave-bar" style="height: 14px;"></div>
-                    <div class="wave-bar" style="height: 22px;"></div>
-                    <div class="wave-bar" style="height: 10px;"></div>
-                    <div class="wave-bar" style="height: 28px;"></div>
-                    <div class="wave-bar" style="height: 18px;"></div>
-                    <div class="wave-bar" style="height: 12px;"></div>
-                    <div class="wave-bar" style="height: 24px;"></div>
-                    <div class="wave-bar" style="height: 16px;"></div>
-                    <div class="wave-bar" style="height: 20px;"></div>
-                  </div>
-                  <span class="timer" id="timerDisplay">0:00</span>
-                  <span class="hint-text">اضغط للتسجيل</span>
-                </div>
-                <div class="action-buttons">
-                  <button class="delete-btn" title="حذف التسجيل">
-                    <svg viewBox="0 0 24 24">
-                      <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z" />
-                    </svg>
-                  </button>
-                  <button class="send-voice-btn" title="إرسال التسجيل">
-                    <svg viewBox="0 0 24 24">
-                      <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-              <div class="progress-container">
-                <div class="progress-bar"></div>
-              </div>
-            </div>
-          </div>
-
-          <button class="send-button" id="forumSendBtn">
-            <span class="send-button-text">إرسال</span>
-          </button>
-          <div class="forum-char-count">
-            <span id="charCount">0</span>/500
-          </div>
-        </div>
-        <div class="forum-login-warning" id="forumLoginWarning" style="display: none;">
-          <p>⚠️ يجب تسجيل الدخول أولاً للمشاركة في المنتدى</p>
-          <button class="btn btn-outline" id="openAuthFromForumBtn">تسجيل الدخول</button>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ===== لوحة تحكم المشرف ===== -->
-  <section class="section" id="adminPanel" style="display: none;">
-    <div class="container">
-      <div class="section-head fade-up">
-        <span class="section-tag">👑 لوحة المشرف</span>
-        <h2 class="section-title">لوحة <span class="gold-text">التحكم</span></h2>
-        <p class="section-desc">مرحباً أيها المشرف، هذه الصفحة خاصة بك فقط</p>
-      </div>
-      <div class="admin-card fade-up">
-        <i class="fas fa-shield-alt"></i>
-        <h3>صلاحية المشرف</h3>
-        <p>أنت الآن تمتلك صلاحية حذف أي رسالة في المنتدى</p>
-      </div>
-
-      <div class="pending-users-section fade-up">
-        <h3><i class="fas fa-user-plus"></i> طلبات التسجيل الجديدة</h3>
-        <div id="pendingUsersContainer">
-          <div class="loading">جاري تحميل الطلبات...</div>
-        </div>
-      </div>
-
-      <div class="admin-notifications-section fade-up">
-        <h3><i class="fas fa-bell"></i> الإشعارات</h3>
-        <div id="adminNotificationsContainer">
-          <div class="loading">جاري تحميل الإشعارات...</div>
-        </div>
-      </div>
-
     </div>
   </section>
 
@@ -314,7 +169,7 @@
     </div>
   </footer>
 
-  <!-- ===== نافذة تسجيل الدخول / إنشاء حساب ===== -->
+  <!-- ===== نافذة تسجيل الدخول ===== -->
   <div class="modal-overlay" id="authModalOverlay" style="display: none;">
     <div class="modal-box">
       <button class="modal-close" id="closeAuthModalBtn">&times;</button>
@@ -322,7 +177,7 @@
         <!-- نموذج تسجيل الدخول -->
         <form class="auth-form" id="loginFormElement" onsubmit="return false;">
           <p class="auth-title">تسجيل الدخول</p>
-          <p class="auth-message">أهلاً بعودتك! سجل دخولك للمتابعة</p>
+          <p class="auth-message">ادخل البريد وكلمة المرور اللي وصلولك لمشاهدة الكورسات</p>
           <label>
             <input required placeholder=" " type="email" class="input" id="loginEmail">
             <span>البريد الإلكتروني</span>
@@ -332,45 +187,42 @@
             <span>كلمة المرور</span>
           </label>
           <button class="auth-submit" id="loginSubmitBtn2">دخول</button>
-          <p class="auth-signin">ليس لديك حساب؟ <a id="switchToRegisterBtn">إنشاء حساب</a></p>
         </form>
 
-        <!-- نموذج إنشاء الحساب -->
-        <form class="auth-form" id="registerFormElement" onsubmit="return false;" style="display: none;">
-          <p class="auth-title">إنشاء حساب</p>
-          <p class="auth-message">سجل الآن واحصل على وصول كامل</p>
-          <div class="flex">
-            <label>
-              <input required placeholder=" " type="text" class="input" id="regFirstName">
-              <span>الاسم الأول</span>
-            </label>
-            <label>
-              <input required placeholder=" " type="text" class="input" id="regLastName">
-              <span>الاسم الأخير</span>
-            </label>
-          </div>
-          <label>
-            <input required placeholder=" " type="email" class="input" id="regEmail">
-            <span>البريد الإلكتروني</span>
-          </label>
-          <label>
-            <input required placeholder=" " type="password" class="input" id="regPassword">
-            <span>كلمة المرور</span>
-          </label>
-          <label>
-            <input required placeholder=" " type="password" class="input" id="regConfirmPassword">
-            <span>تأكيد كلمة المرور</span>
-          </label>
-          <label>
-            <input placeholder=" " type="tel" class="input" id="regPhone">
-            <span>رقم الهاتف (اختياري)</span>
-          </label>
-          <button class="auth-submit" id="registerSubmitBtn2">تسجيل</button>
-          <p class="auth-signin">لديك حساب بالفعل؟ <a id="switchToLoginBtn">تسجيل الدخول</a></p>
-        </form>
       </div>
     </div>
   </div>
+  <!-- ===== منطقة الكورسات الخاصة (معزولة عن المنصة) ===== -->
+  <div id="courseArea">
+    <header class="ca-header">
+      <div class="ca-logo"><span>🎓</span><span>خطوات نحو التميز</span></div>
+      <div class="ca-actions">
+        <button class="btn btn-outline" id="caLogoutBtn">
+          <i class="fas fa-sign-out-alt"></i><span>خروج</span>
+        </button>
+        <button class="btn btn-gold" id="caBackBtn">
+          <i class="fas fa-arrow-right"></i><span>رجوع للمنصة</span>
+        </button>
+      </div>
+    </header>
+    <main class="ca-main" id="caMain"></main>
+  </div>
+
+  <!-- ===== احتفال نجاح الدخول ===== -->
+  <div id="caCelebrate">
+    <canvas id="celebrateCanvas"></canvas>
+    <div class="celebrate-card">
+      <div class="celebrate-badge">
+        <svg viewBox="0 0 52 52">
+          <circle cx="26" cy="26" r="24" />
+          <path d="M15 27l7 7 15-16" />
+        </svg>
+      </div>
+      <h2>🎉 أهلاً بيك من تاني!</h2>
+      <p>تم فتح كورساتك الخاصة بنجاح.. بالتوفيق 💪</p>
+    </div>
+  </div>
+
   <!-- ===== رسائل التنبيه (Toast) ===== -->
   <div class="toast" id="toast">
     <div class="toast-icon" id="toastIcon"><i class="fas fa-check"></i></div>
@@ -388,6 +240,6 @@
 
   <script type="module" src="script.js"></script>
 
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a2b2a06ecb4fe1b2',t:'MTc4NjczODQ3NQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</body>
 
 </html>

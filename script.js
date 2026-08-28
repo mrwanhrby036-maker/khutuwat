@@ -1,117 +1,294 @@
 // ===== استيراد Firebase =====
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import {
-  getDatabase,
-  ref,
-  set,
-  get,
-  push,
-  query,
-  orderByChild,
-  limitToLast,
-  remove,
-  onChildAdded,
-  equalTo,
-  update
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
-import {
-  getStorage,
-  ref as storageRef,
-  uploadBytes,
-  getDownloadURL
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
-import {
   getAuth,
-  createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
-  onAuthStateChanged,
-  reauthenticateWithCredential,
-  EmailAuthProvider
+  onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 // ===== إعدادات Firebase =====
 const firebaseConfig = {
-  apiKey: "AIzaSyBeor8MTz1uaQumT3C4FFE6M7FZisPvom0",
-  authDomain: "edulearn-platform-55b45.firebaseapp.com",
-  databaseURL:
-    "https://edulearn-platform-55b45-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "edulearn-platform-55b45",
-  storageBucket: "edulearn-platform-55b45.firebasestorage.app",
-  messagingSenderId: "866736202453",
-  appId: "1:866736202453:web:b81f59c7ed4f39e940385c"
+  apiKey: "AIzaSyD1QN_bG2U_eNJ-lH5xlCZK4qjxvbvJRU4",
+  authDomain: "chatapp-e8283.firebaseapp.com",
+  projectId: "chatapp-e8283",
+  storageBucket: "chatapp-e8283.firebasestorage.app",
+  messagingSenderId: "456910182070",
+  appId: "1:456910182070:web:2976378ec5e206a3867817"
 };
 
 // ===== تهيئة Firebase =====
 const app = initializeApp(firebaseConfig);
-const storage = getStorage(app);
 const auth = getAuth(app);
-const database = getDatabase(app);
+
+// ============================================================
+// ✏️✏️✏️ بيانات الكورسات — غيّر محتوى كورساتك من هنا بالظبط ✏️✏️✏️
+// ============================================================
+// لإضافة كورس جديد: انسخ بلوك { ... } كامل والصقه تحتيه وغيّر بياناته
+// لإضافة فيديو للكورس: انسخ بلوك { ... } من جوه videos والصقه تحتيه
+// videoUrl بيقبل لينكات Gumlet ويوتيوب وجوجل درايف تلقائياً
+const COURSES = [
+  {
+    id: "course-1",
+    icon: "📚",
+    title: "اسم الكورس هنا — غيّره من script.js",
+    short:
+      "وصف قصير عن الكورس يظهر في الصفحة الرئيسية — غيّره من هنا (✏️ بيانات الكورسات في script.js)",
+    description:
+      "وصف تفصيلي للكورس بيظهر فوق قائمة الفيديوهات.\nغيّره من ملف script.js — البلوك المعلَّم بـ (✏️ بيانات الكورسات).",
+    videos: [
+      {
+        title: "النحو — المعلقات",
+        instructor: "محمد صلاح",
+        duration: "9 دقائق",
+        videoUrl:
+          "https://play.gumlet.io/embed/6a915228ceaa98dd5e09c605?background=false&autoplay=false&loop=false&disable_player_controls=false"
+      },
+      {
+        title: "النحو — إسناد الأفعال",
+        instructor: "محمد صلاح",
+        duration: "8 دقائق",
+        videoUrl:
+          "https://play.gumlet.io/embed/6a915228ceaa98dd5e09c605?background=false&autoplay=false&loop=false&disable_player_controls=false"
+      },
+      {
+        title: "الأدب — تطور الشعر",
+        instructor: "محمد صلاح",
+        duration: "10 دقائق",
+        videoUrl:
+          "https://play.gumlet.io/embed/6a915228ceaa98dd5e09c605?background=false&autoplay=false&loop=false&disable_player_controls=false"
+      }
+    ]
+  }
+];
+// ============================================================
 
 // ===== المتغيرات العامة =====
 let currentUser = null;
-let sections = ["home", "courses", "features", "forum", "adminPanel"];
+let sections = ["home", "courses", "features"];
 let currentSectionIndex = 0;
-
-// ===== متغيرات مسجل الصوت =====
-let mediaRecorder = null;
-let audioChunks = [];
-let recordingSeconds = 0;
-let recordingInterval = null;
-let audioBlob = null;
-
-// ===== دوال شاشة التحميل والترحيب =====
-function hideLoadingScreen() {
-  const ls = document.getElementById("loadingScreenNew");
-  if (ls) {
-    ls.style.transition = "opacity 0.6s ease, visibility 0.6s ease";
-    ls.style.opacity = "0";
-    ls.style.visibility = "hidden";
-    ls.style.pointerEvents = "none";
-    setTimeout(() => {
-      if (ls) ls.style.display = "none";
-    }, 600);
-  }
-}
-
-function showWelcomeScreen() {
-  const ws = document.getElementById("welcomeScreen");
-  if (ws) ws.classList.add("show");
-}
+let pendingCourseEnter = false;
 
 // ===== بداية التشغيل =====
 window.addEventListener("load", () => {
-  // إخفاء شاشة التحميل بعد 2.5 ثانية
-  setTimeout(() => {
-    hideLoadingScreen();
-  }, 2500);
-
-  // إظهار شاشة الترحيب بعد 2.5 ثانية
-  setTimeout(() => {
-    showWelcomeScreen();
-  }, 2500);
-
-  // تشغيل باقي الوظائف فوراً
-  initObserver();
   createParticles();
-  initVoiceRecorder();
+  renderCourseShowcase();
+  runIntro();
 });
 
-// إخفاء إجباري بعد 5 ثوانٍ كحد أقصى للطوارئ
-setTimeout(() => {
-  const ls = document.getElementById("loadingScreenNew");
-  if (ls && ls.style.display !== "none") {
-    ls.style.display = "none";
-    document.getElementById("welcomeScreen").classList.add("show");
+// ===== مقدمة الفضاء الذهبي 3D (من 0 إلى 6 ثواني) =====
+const INTRO_MS = 6000;
+let introDone = false;
+let introRAF = null;
+
+function revealPlatform() {
+  if (introDone) return;
+  introDone = true;
+  if (introRAF) cancelAnimationFrame(introRAF);
+  const intro = document.getElementById("intro3d");
+  if (intro) {
+    intro.classList.add("out");
+    setTimeout(() => (intro.style.display = "none"), 750);
   }
-}, 5000);
+  document.body.classList.add("revealed");
+  document.body.style.overflow = "";
+  initObserver();
+}
 
-document.getElementById("welcomeContinueBtn")?.addEventListener("click", () => {
-  const ws = document.getElementById("welcomeScreen");
-  ws.classList.remove("show");
-  setTimeout(() => (ws.style.display = "none"), 800);
-  showToast("info", "👋 أهلاً وسهلاً!", "مرحباً بك في خطوات نحو التميز");
-});
+function runIntro() {
+  const intro = document.getElementById("intro3d");
+  if (!intro) {
+    revealPlatform();
+    return;
+  }
+  document.body.style.overflow = "hidden";
+  document
+    .getElementById("introSkipBtn")
+    ?.addEventListener("click", revealPlatform);
+
+  // احترام تفضيل تقليل الحركة في المتصفح
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    revealPlatform();
+    return;
+  }
+
+  // أمان: لو حصل أي خطأ في المقدمة → المنصة تظهر عادي
+  try {
+    Promise.race([
+      document.fonts?.ready || Promise.resolve(),
+      new Promise((r) => setTimeout(r, 700))
+    ]).then(() => {
+      try {
+        startIntroCanvas();
+      } catch (e) {
+        console.error(e);
+      }
+    });
+  } catch (e) {
+    console.error(e);
+  }
+
+  setTimeout(revealPlatform, INTRO_MS);
+}
+
+// عيّنات نقاط من نص العنوان عشان الجزيئات تكوّنه (مع حلقة احتياطية)
+function sampleTitleTargets() {
+  const pts = [];
+  try {
+    const w = 660, h = 150;
+    const oc = document.createElement("canvas");
+    oc.width = w;
+    oc.height = h;
+    const octx = oc.getContext("2d");
+    octx.fillStyle = "#fff";
+    octx.font = '900 74px "Reem Kufi", Tajawal, sans-serif';
+    octx.textAlign = "center";
+    octx.textBaseline = "middle";
+    octx.fillText("خطوات نحو التميز", w / 2, h / 2);
+    const data = octx.getImageData(0, 0, w, h).data;
+    for (let y = 0; y < h; y += 4)
+      for (let x = 0; x < w; x += 4)
+        if (data[(y * w + x) * 4 + 3] > 130)
+          pts.push({ x: x - w / 2, y: y - h / 2 });
+  } catch (e) {}
+
+  if (pts.length < 40) {
+    pts.length = 0;
+    for (let i = 0; i < 260; i++) {
+      const a = (i / 260) * Math.PI * 2;
+      pts.push({ x: Math.cos(a) * 175, y: Math.sin(a) * 72 });
+    }
+  }
+  for (let i = pts.length - 1; i > 0; i--) {
+    const j = (Math.random() * (i + 1)) | 0;
+    [pts[i], pts[j]] = [pts[j], pts[i]];
+  }
+  return pts.slice(0, window.innerWidth < 600 ? 220 : 380);
+}
+
+function startIntroCanvas() {
+  const cv = document.getElementById("introCanvas");
+  if (!cv) return;
+  const ctx = cv.getContext("2d");
+  const DPR = Math.min(window.devicePixelRatio || 1, 2);
+  let W = window.innerWidth, H = window.innerHeight;
+
+  function resize() {
+    W = window.innerWidth;
+    H = window.innerHeight;
+    cv.width = W * DPR;
+    cv.height = H * DPR;
+    cv.style.width = W + "px";
+    cv.style.height = H + "px";
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  }
+  resize();
+  window.addEventListener("resize", resize);
+
+  const GOLD = ["255,215,0", "255,165,0", "255,229,92", "255,255,255"];
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  const pick = () => GOLD[(Math.random() * GOLD.length) | 0];
+  const t0 = performance.now();
+  const FLY_START = 1200, HOLD_END = 5400;
+
+  // غبار خلفي بعمق (بارالاكس) بيتحرك على مهله
+  const dust = Array.from(
+    { length: Math.round((W * H) / 16000) + 40 },
+    () => ({
+      x: Math.random() * W,
+      y: Math.random() * H,
+      z: rnd(0.25, 1),
+      r: rnd(0.6, 1.9),
+      vx: rnd(-0.1, 0.1),
+      vy: rnd(-0.22, -0.05),
+      tw: Math.random() * Math.PI * 2,
+      c: pick()
+    })
+  );
+
+  // جزيئات التكوين: بتنطلق من أطراف الفضاء نحو عيّنات نص العنوان
+  const formers = sampleTitleTargets().map((t) => {
+    const a = Math.random() * Math.PI * 2;
+    const r = Math.max(W, H) * rnd(0.6, 0.95);
+    return {
+      sx: W / 2 + Math.cos(a) * r,
+      sy: H * 0.47 + Math.sin(a) * r,
+      tx: W / 2 + t.x,
+      ty: H * 0.47 + t.y,
+      d: rnd(1100, 2100),
+      delay: rnd(0, 650),
+      size: rnd(0.9, 2.3),
+      tw: Math.random() * Math.PI * 2,
+      c: pick()
+    };
+  });
+
+  const ease = (p) =>
+    p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
+
+  function frame(now) {
+    if (introDone) return;
+    const t = now - t0;
+    ctx.clearRect(0, 0, W, H);
+
+    // الغبار الخلفي
+    for (const p of dust) {
+      p.x += p.vx * p.z * 2;
+      p.y += p.vy * p.z * 2;
+      if (p.y < -10) { p.y = H + 10; p.x = Math.random() * W; }
+      if (p.x < -10) p.x = W + 10;
+      if (p.x > W + 10) p.x = -10;
+      const a = (0.12 + 0.3 * p.z) * (0.6 + 0.4 * Math.sin(t * 0.002 + p.tw));
+      ctx.beginPath();
+      ctx.fillStyle = `rgba(${p.c},${a})`;
+      ctx.arc(p.x, p.y, p.r * p.z, 0, 7);
+      ctx.fill();
+    }
+
+    // جزيئات التكوين: طيران ← تجمع ولمعان ← تحرر
+    for (const p of formers) {
+      const raw = (t - FLY_START - p.delay) / p.d;
+      if (raw < 0) continue;
+      const e = ease(Math.min(raw, 1));
+      let x = p.sx + (p.tx - p.sx) * e;
+      let y = p.sy + (p.ty - p.sy) * e;
+      let a;
+      if (raw < 1) {
+        a = Math.min(raw * 4, 1) * 0.95;
+      } else if (t < HOLD_END) {
+        x += Math.cos(p.tw + t * 0.0012) * 3;
+        y += Math.sin(p.tw + t * 0.0011) * 3;
+        a = 0.6 + 0.35 * Math.sin(t * 0.006 + p.tw);
+      } else {
+        const k = Math.min((t - HOLD_END) / 700, 1);
+        const dx = p.tx - W / 2;
+        const dy = p.ty - H * 0.47;
+        const len = Math.hypot(dx, dy) || 1;
+        x += (dx / len) * k * 90;
+        y += (dy / len) * k * 90;
+        a = 0.95 * (1 - k);
+      }
+      const sz = p.size * (1 - 0.35 * (1 - e));
+      ctx.beginPath();
+      ctx.fillStyle = `rgba(${p.c},${Math.max(a, 0)})`;
+      ctx.arc(x, y, sz, 0, 7);
+      ctx.fill();
+    }
+
+    // نبضة حلقة ذهبية عند لحظة اللمعة
+    if (t > 4500 && t < 5200) {
+      const k = (t - 4500) / 700;
+      ctx.beginPath();
+      ctx.strokeStyle = `rgba(255,215,0,${0.5 * (1 - k)})`;
+      ctx.lineWidth = 2;
+      ctx.arc(W / 2, H * 0.47, 60 + k * Math.max(W, H) * 0.55, 0, 7);
+      ctx.stroke();
+    }
+
+    introRAF = requestAnimationFrame(frame);
+  }
+  introRAF = requestAnimationFrame(frame);
+}
 
 function updateCurrentSection() {
   const pos = window.scrollY + 150;
@@ -145,416 +322,358 @@ function escapeHtml(t) {
   return d.innerHTML;
 }
 
-// ===== مسجل الصوت =====
-function initVoiceRecorder() {
-  const toggle = document.getElementById("recorder-toggle");
-  const vr = document.querySelector(".voice-recorder");
-  const timerEl = document.getElementById("timerDisplay");
-  const deleteBtn = document.querySelector(".delete-btn");
-  const sendVoiceBtn = document.querySelector(".send-voice-btn");
-  let waveInterval = null;
-
-  function randomizeWaves() {
-    if (!toggle.checked) return;
-    document.querySelectorAll(".wave-bar").forEach((b) => {
-      b.style.height = Math.floor(Math.random() * 26) + 6 + "px";
-    });
-  }
-
-  async function startRecording() {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorder = new MediaRecorder(stream);
-      audioChunks = [];
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) audioChunks.push(e.data);
-      };
-      mediaRecorder.onstop = () => {
-        audioBlob = new Blob(audioChunks, { type: "audio/webm" });
-        stream.getTracks().forEach((t) => t.stop());
-      };
-      mediaRecorder.start();
-      recordingSeconds = 0;
-      updateTimerDisplay();
-      recordingInterval = setInterval(() => {
-        recordingSeconds++;
-        if (recordingSeconds >= 3599) recordingSeconds = 3599;
-        updateTimerDisplay();
-      }, 1000);
-      waveInterval = setInterval(randomizeWaves, 280);
-      showToast("success", "🎙️ بدأ التسجيل", "يتم تسجيل الصوت الآن...");
-    } catch (e) {
-      showToast("error", "⚠️ خطأ", "تعذر الوصول إلى الميكروفون");
-      toggle.checked = false;
-      vr.classList.remove("recording");
+// ===== تحويل لينكات الفيديو لصيغة التشغيل (يوتيوب / درايف) =====
+function toEmbedUrl(url) {
+  try {
+    const u = new URL(url);
+    const h = u.hostname.replace(/^www\./, "");
+    // يوتيوب
+    if (h === "youtu.be") {
+      return "https://www.youtube.com/embed" + u.pathname;
     }
-  }
-
-  function stopRecording() {
-    if (mediaRecorder && mediaRecorder.state !== "inactive")
-      mediaRecorder.stop();
-    if (recordingInterval) {
-      clearInterval(recordingInterval);
-      recordingInterval = null;
-    }
-    if (waveInterval) {
-      clearInterval(waveInterval);
-      waveInterval = null;
-    }
-    document.querySelectorAll(".wave-bar").forEach((b, i) => {
-      const h = [14, 22, 10, 28, 18, 12, 24, 16, 20];
-      b.style.height = h[i] + "px";
-    });
-  }
-
-  function updateTimerDisplay() {
-    const m = Math.floor(recordingSeconds / 60);
-    const s = recordingSeconds % 60;
-    timerEl.textContent = `${m}:${s < 10 ? "0" : ""}${s}`;
-  }
-
-  function resetRecorder() {
-    if (toggle.checked) {
-      toggle.checked = false;
-      vr.classList.remove("recording");
-      stopRecording();
-      recordingSeconds = 0;
-      updateTimerDisplay();
-      audioBlob = null;
-    }
-  }
-
-  toggle.addEventListener("change", function () {
-    if (this.checked) {
-      if (!currentUser) {
-        showToast("error", "⚠️ تنبيه", "يجب تسجيل الدخول لاستخدام مسجل الصوت");
-        this.checked = false;
-        return;
+    if (h.endsWith("youtube.com")) {
+      if (u.pathname === "/watch") {
+        return (
+          "https://www.youtube.com/embed/" + (u.searchParams.get("v") || "")
+        );
       }
-      vr.classList.add("recording");
-      startRecording();
-    } else {
-      vr.classList.remove("recording");
-      stopRecording();
+      if (u.pathname.startsWith("/shorts/")) {
+        return "https://www.youtube.com/embed/" + u.pathname.split("/")[2];
+      }
+      if (u.pathname.startsWith("/live/")) {
+        return "https://www.youtube.com/embed/" + u.pathname.split("/")[2];
+      }
+      if (u.pathname.startsWith("/embed/")) {
+        return url;
+      }
     }
-  });
-
-  deleteBtn.addEventListener("click", (e) => {
-    e.preventDefault();
-    resetRecorder();
-    showToast("info", "🗑️ تم الحذف", "تم حذف التسجيل الصوتي");
-  });
-
-  if (!sendVoiceBtn) return;
-  sendVoiceBtn.addEventListener("click", async (e) => {
-    e.preventDefault();
-    if (!currentUser) {
-      showToast("error", "⚠️ تنبيه", "يجب تسجيل الدخول لإرسال رسالة صوتية");
-      openAuthModal();
-      return;
+    // جوجل درايف
+    if (h.endsWith("drive.google.com")) {
+      const m = url.match(/\/file\/d\/([^/]+)/) || url.match(/[?&]id=([^&]+)/);
+      if (m) {
+        return "https://drive.google.com/file/d/" + m[1] + "/preview";
+      }
     }
-
-    if (!audioBlob || audioBlob.size === 0) {
-      showToast("error", "⚠️ خطأ", "لا يوجد تسجيل صوتي للإرسال");
-      return;
+    // Gumlet
+    if (h === "play.gumlet.io" && u.pathname.startsWith("/embed/")) {
+      return url;
     }
-
-    if (audioBlob.size > 5 * 1024 * 1024) {
-      showToast("error", "⚠️ خطأ", "حجم التسجيل كبير جداً (الحد 5MB)");
-      return;
+    if (h.endsWith("gumlet.tv") && u.pathname.startsWith("/watch/")) {
+      return "https://play.gumlet.io/embed/" + u.pathname.split("/")[2];
     }
-
-    const sb = document.getElementById("forumSendBtn");
-    sb.disabled = true;
-    sb.innerHTML = '<span class="send-button-text">⏳ جاري الرفع...</span>';
-
-    try {
-      const fileName = `voice_${Date.now()}_${currentUser.uid}.webm`;
-      const fileRef = storageRef(storage, `voiceMessages/${fileName}`);
-      await uploadBytes(fileRef, audioBlob);
-      const audioUrl = await getDownloadURL(fileRef);
-
-      const refMsg = push(ref(database, "forumMessages"));
-      const data = {
-        id: refMsg.key,
-        text: `🎤 رسالة صوتية (${formatTime(recordingSeconds)})`,
-        audioUrl: audioUrl,
-        audioDuration: recordingSeconds,
-        senderId: currentUser.uid,
-        senderName: currentUser.name,
-        timestamp: Date.now(),
-        isAdmin: currentUser.isAdmin === true,
-        messageType: "voice"
-      };
-      await set(refMsg, data);
-      resetRecorder();
-      showToast("success", "✅ تم الإرسال", "تم إرسال الرسالة الصوتية بنجاح");
-      await loadMessages();
-    } catch (er) {
-      console.error(er);
-      showToast("error", "⚠️ خطأ", "حدث خطأ أثناء رفع الملف الصوتي");
-    } finally {
-      sb.disabled = false;
-      sb.innerHTML = '<span class="send-button-text">إرسال</span>';
-    }
-  });
-
-  function formatTime(sec) {
-    const m = Math.floor(sec / 60);
-    const s = sec % 60;
-    return `${m}:${s < 10 ? "0" : ""}${s}`;
+    return null; // مش لينك تشغيل مباشر → هنستخدم مشغل فيديو عادي
+  } catch {
+    return null;
   }
 }
 
-// ===== دوال المنتدى =====
-async function deleteMessage(id, div) {
-  if (!currentUser) {
-    showToast("error", "⚠️ تنبيه", "يجب تسجيل الدخول للحذف");
-    return;
-  }
-  const isAdmin = currentUser.isAdmin === true;
-  if (!isAdmin) {
-    showToast("error", "⚠️ تنبيه", "المشرف فقط من يمكنه حذف الرسائل");
-    return;
-  }
-  if (confirm("🗑️ هل تريد حذف هذه الرسالة نهائياً؟")) {
-    try {
-      await remove(ref(database, `forumMessages/${id}`));
-      div.remove();
-      showToast("success", "🗑️ تم الحذف", "تم حذف الرسالة بنجاح");
-    } catch (e) {
-      showToast("error", "⚠️ خطأ", "حدث خطأ أثناء حذف الرسالة");
-    }
-  }
-}
-
-function displayMessage(msg) {
-  const c = document.getElementById("forumMessages");
-  if (!c) return;
-  if (c.querySelector(".forum-empty")) c.innerHTML = "";
-  const div = document.createElement("div");
-  div.className = "forum-message";
-  div.dataset.messageId = msg.id;
-  div.dataset.senderId = msg.senderId;
-  if (currentUser && msg.senderId === currentUser.uid)
-    div.classList.add("own-message");
-  const av = msg.senderName ? msg.senderName.charAt(0).toUpperCase() : "?";
-  const time = new Date(msg.timestamp).toLocaleTimeString("ar-EG", {
-    hour: "2-digit",
-    minute: "2-digit"
+// ===== عارضة الكورسات المقفولة (في قسم الكورسات) =====
+function renderCourseShowcase() {
+  const wrap = document.getElementById("courseCards");
+  if (!wrap) return;
+  wrap.innerHTML = COURSES.map(
+    (c) => `
+        <div class="course-lock-card">
+          <div class="course-lock-badge">🔒 كورس مغلق</div>
+          <div class="course-lock-icon">${c.icon}</div>
+          <h3 class="course-lock-title">${escapeHtml(c.title)}</h3>
+          <p class="course-lock-desc">${escapeHtml(c.short)}</p>
+          <div class="course-lock-meta">🎬 ${(c.videos || []).length} فيديو</div>
+          <button class="btn btn-gold course-enter-btn" data-course="${c.id}">
+            <i class="fas fa-lock-open"></i>دخول الكورس
+          </button>
+        </div>
+    `
+  ).join("");
+  wrap.querySelectorAll(".course-enter-btn").forEach((btn) => {
+    btn.addEventListener("click", enterCourse);
   });
-  const date = new Date(msg.timestamp).toLocaleDateString("ar-EG", {
-    day: "numeric",
-    month: "numeric"
-  });
-  const badge = msg.isAdmin
-    ? ' <span class="verified-badge" title="مشرف موثوق"><span class="checkmark"></span></span>'
-    : "";
-  let content = "";
-  if (msg.messageType === "voice" && msg.audioUrl) {
-    content = `<div class="voice-message"><audio controls src="${msg.audioUrl}"></audio><span class="voice-duration">🎤 ${msg.text}</span></div>`;
-  } else {
-    content = escapeHtml(msg.text);
-  }
-  div.innerHTML = `<div class="forum-message-avatar">${av}</div><div class="forum-message-content"><div class="forum-message-name"><span>${escapeHtml(
-    msg.senderName
-  )}${badge}</span><span class="forum-message-time">${date} ${time}</span></div><div class="forum-message-text">${content}</div></div>`;
-  if (
-    currentUser &&
-    (currentUser.isAdmin || currentUser.uid === msg.senderId)
-  ) {
-    const btn = document.createElement("button");
-    btn.innerHTML = "🗑️";
-    btn.className = "delete-msg-btn";
-    btn.onclick = (e) => {
-      e.stopPropagation();
-      deleteMessage(msg.id, div);
-    };
-    div.appendChild(btn);
-  }
-  c.appendChild(div);
-  c.scrollTop = c.scrollHeight;
 }
 
-async function loadMessages() {
-  const c = document.getElementById("forumMessages");
-  if (!c) return;
-  try {
-    const snap = await get(
-      query(
-        ref(database, "forumMessages"),
-        orderByChild("timestamp"),
-        limitToLast(30)
-      )
-    );
-    const msgs = [];
-    snap.forEach((s) => {
-      const m = s.val();
-      if (m && m.id) msgs.push(m);
-    });
-    msgs.sort((a, b) => a.timestamp - b.timestamp);
-    if (msgs.length === 0) {
-      c.innerHTML =
-        '<div class="forum-empty">✨ لا توجد رسائل بعد... كن أول من يكتب!</div>';
-    } else {
-      c.innerHTML = "";
-      msgs.forEach((m) => displayMessage(m));
-    }
-  } catch (e) {
-    c.innerHTML = '<div class="forum-error">⚠️ حدث خطأ في تحميل الرسائل</div>';
-  }
-}
-
-let lastSendTime = 0;
-
-async function sendForumMessage() {
-  if (Date.now() - lastSendTime < 2000) {
-    showToast("error", "⏳ استنى شوية", "ممنوع إرسال رسائل بسرعة");
-    return;
-  }
+function enterCourse() {
   if (!currentUser) {
     showToast(
-      "error",
-      "⚠️ تنبيه",
-      "يجب تسجيل الدخول أولاً للمشاركة في المنتدى"
+      "info",
+      "🔐 كورس مغلق",
+      "ادخل بالبريد وكلمة المرور اللي وصلولك من الإدارة"
     );
+    openAuthModal();
     return;
   }
-  if (currentUser && currentUser.approved === false) {
-    showToast(
-      "warning",
-      "⏳ في انتظار التفعيل",
-      "حسابك لم يتم تفعيله بعد من المشرف"
-    );
-    return;
-  }
-  const inp = document.getElementById("forumMessageInput");
-  const text = inp.value.trim();
-  if (!text) {
-    showToast("error", "⚠️ خطأ", "لا يمكن إرسال رسالة فارغة");
-    return;
-  }
-  if (text.length > 500) {
-    showToast("error", "⚠️ خطأ", "الرسالة طويلة جداً (حد أقصى 500 حرف)");
-    return;
-  }
-  const sb = document.getElementById("forumSendBtn");
-  sb.disabled = true;
-  sb.innerHTML = '<span class="send-button-text">جاري الإرسال...</span>';
-  try {
-    const refMsg = push(ref(database, "forumMessages"));
-    const data = {
-      id: refMsg.key,
-      text: text,
-      senderId: currentUser.uid,
-      senderName: currentUser.name,
-      timestamp: Date.now(),
-      isAdmin: currentUser.isAdmin === true,
-      messageType: "text"
-    };
-    await set(refMsg, data);
-    lastSendTime = Date.now();
-    inp.value = "";
-    document.getElementById("charCount").innerHTML = "0";
-    showToast("success", "✅ تم الإرسال", "تم إرسال رسالتك بنجاح");
-    await loadMessages();
-  } catch (e) {
-    showToast("error", "⚠️ خطأ", "حدث خطأ أثناء إرسال الرسالة");
-  } finally {
-    sb.disabled = false;
-    sb.innerHTML = '<span class="send-button-text">إرسال</span>';
-  }
+  openCourseArea();
 }
 
-let forumListenerRef = null;
-let forumCallback = null;
+// ===== منطقة الكورسات الخاصة (معزولة عن المنصة) =====
+// حالة التنقل جوه المنطقة: قائمة الكورسات ← دروس الكورس ← تشغيل فيديو
+const caState = { demo: false, courseIdx: null, videoIdx: null };
 
-function startAutoRefresh() {
-  if (forumListenerRef) return;
-  const messagesRef = query(
-    ref(database, "forumMessages"),
-    orderByChild("timestamp"),
-    limitToLast(50)
+function openCourseArea(demo = false) {
+  const area = document.getElementById("courseArea");
+  if (!area) return;
+  caState.demo = demo;
+  renderCoursesList();
+  area.classList.add("open");
+  document.body.style.overflow = "hidden";
+  area.scrollTop = 0;
+}
+
+function caRender(html) {
+  const area = document.getElementById("courseArea");
+  const main = document.getElementById("caMain");
+  if (!area || !main) return;
+  const who = caState.demo
+    ? '🧪 وضع المعاينة التجريبية — <span class="ca-user-email">بدون تسجيل دخول</span>'
+    : `مسجّل دخول باسم: <span class="ca-user-email">${escapeHtml(
+        currentUser?.email || ""
+      )}</span>`;
+  main.innerHTML = `
+      <div class="ca-welcome">
+        <h1>🎓 كورساتك الخاصة</h1>
+        <p>${who}</p>
+      </div>${html}`;
+  area.scrollTop = 0;
+}
+
+// 1) شاشة اختيار الكورس
+function renderCoursesList() {
+  caState.courseIdx = null;
+  caState.videoIdx = null;
+  const html = COURSES.length
+    ? `<div class="ca-grid">` +
+      COURSES.map(
+        (c, i) => `
+        <div class="ca-pick-card">
+          <div class="ca-pick-icon">${c.icon}</div>
+          <h3>${escapeHtml(c.title)}</h3>
+          <p>${escapeHtml(c.short)}</p>
+          <div class="ca-pick-meta">🎬 ${(c.videos || []).length} فيديو</div>
+          <button class="btn btn-gold ca-open-course" data-idx="${i}">عرض الدروس</button>
+        </div>`
+      ).join("") +
+      `</div>`
+    : '<div class="ca-empty">📭 لا توجد كورسات متاحة حالياً</div>';
+  caRender(html);
+  document.querySelectorAll(".ca-open-course").forEach((b) =>
+    b.addEventListener("click", () =>
+      renderCourseLessons(Number(b.dataset.idx))
+    )
   );
-  forumCallback = (snapshot) => {
-    const newMsg = snapshot.val();
-    if (newMsg && newMsg.id) {
-      const existing = document.querySelector(
-        `.forum-message[data-message-id="${newMsg.id}"]`
+}
+
+// 2) شاشة دروس الكورس (قائمة الفيديوهات)
+function renderCourseLessons(idx) {
+  const c = COURSES[idx];
+  if (!c) return;
+  caState.courseIdx = idx;
+  caState.videoIdx = null;
+  const vids = c.videos || [];
+  const html = `
+    <button class="ca-back">← كل الكورسات</button>
+    <div class="ca-course">
+      <h2 class="ca-course-title">${c.icon} ${escapeHtml(c.title)}</h2>
+      <p class="ca-course-desc">${escapeHtml(c.description)}</p>
+      ${
+        vids.length
+          ? `<div class="lesson-list">` +
+            vids.map(
+              (v, i) => `
+              <div class="lesson-row" data-c="${idx}" data-v="${i}">
+                <div class="lesson-thumb"><span>▶</span><small>شاهد</small></div>
+                <div class="lesson-info">
+                  <div class="lesson-title">
+                    <span class="lesson-num">${i + 1}</span>${escapeHtml(v.title)}
+                  </div>
+                  <div class="lesson-meta">
+                    <span>👤 ${escapeHtml(v.instructor || "غير محدد")}</span>
+                    <span>⏱ ${escapeHtml(v.duration || "—")}</span>
+                  </div>
+                </div>
+              </div>`
+            ).join("") +
+            `</div>`
+          : '<div class="ca-empty">📭 لا توجد فيديوهات في الكورس ده لسه</div>'
+      }
+    </div>`;
+  caRender(html);
+  document.querySelector(".ca-back")?.addEventListener("click", renderCoursesList);
+  document.querySelectorAll(".lesson-row").forEach((r) =>
+    r.addEventListener("click", () =>
+      openLesson(Number(r.dataset.c), Number(r.dataset.v))
+    )
+  );
+}
+
+// 3) شاشة تشغيل الدرس
+function openLesson(ci, vi) {
+  const c = COURSES[ci];
+  const v = c?.videos?.[vi];
+  if (!c || !v) return;
+  caState.videoIdx = vi;
+
+  let embed = toEmbedUrl(v.videoUrl);
+  // علامة مائية بإيميل الطالب على مشغل Gumlet (لو مفعّلتها من إعدادات Gumlet)
+  if (
+    embed &&
+    embed.includes("play.gumlet.io/embed") &&
+    currentUser?.email &&
+    !caState.demo
+  ) {
+    embed +=
+      (embed.includes("?") ? "&" : "?") +
+      "watermark_text=" +
+      encodeURIComponent(currentUser.email);
+  }
+  const player = embed
+    ? `<iframe src="${embed}" title="${escapeHtml(
+        v.title
+      )}" referrerpolicy="origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen></iframe>`
+    : `<video controls preload="metadata" src="${v.videoUrl}"></video>`;
+
+  const html = `
+    <button class="ca-back">← دروس الكورس</button>
+    <div class="ca-course">
+      <h2 class="ca-course-title">🎬 ${escapeHtml(v.title)}</h2>
+      <div class="lesson-meta" style="margin-bottom:15px;">
+        <span>👤 ${escapeHtml(v.instructor || "غير محدد")}</span>
+        <span>⏱ ${escapeHtml(v.duration || "—")}</span>
+      </div>
+      <div class="ca-video" id="caVideoBox">${player}</div>
+      <div class="ca-video-tools">
+        <button class="ca-fs-btn" id="caFsBtn">⛶ ملء الشاشة</button>
+      </div>
+    </div>`;
+  caRender(html);
+  document
+    .querySelector(".ca-back")
+    ?.addEventListener("click", () => renderCourseLessons(ci));
+  document
+    .getElementById("caFsBtn")
+    ?.addEventListener("click", toggleVideoFullscreen);
+}
+
+// ===== ملء الشاشة لمشغل الفيديو =====
+function toggleVideoFullscreen() {
+  const box = document.getElementById("caVideoBox");
+  if (!box) return;
+
+  const isFs =
+    document.fullscreenElement || document.webkitFullscreenElement;
+  if (isFs) {
+    (
+      document.exitFullscreen || document.webkitExitFullscreen
+    )?.call(document);
+    return;
+  }
+
+  const fsEnabled =
+    document.fullscreenEnabled || document.webkitFullscreenEnabled;
+  if (!fsEnabled) {
+    showToast(
+      "info",
+      "⛶ ملء الشاشة",
+      "النافذة الحالية بتمنع التكبير — افتح الموقع في تاب جديد لوحده وهيشتغل 100%"
+    );
+    return;
+  }
+
+  const req = box.requestFullscreen || box.webkitRequestFullscreen;
+  if (req) {
+    const p = req.call(box);
+    if (p && p.catch)
+      p.catch(() =>
+        showToast("error", "⚠️ خطأ", "المتصفح رفض ملء الشاشة.. جرب تاني")
       );
-      if (!existing) {
-        displayMessage(newMsg);
-      }
+  }
+}
+
+// ===== احتفال نجاح الدخول للكورسات =====
+let confettiRAF = null;
+
+function playEnterCelebration() {
+  const ov = document.getElementById("caCelebrate");
+  if (!ov) {
+    openCourseArea();
+    return;
+  }
+  ov.classList.add("show");
+  try {
+    startConfetti();
+  } catch (e) {
+    console.error(e);
+  }
+  setTimeout(() => {
+    ov.classList.remove("show");
+    stopConfetti();
+    openCourseArea();
+    showToast("success", "✅ أهلاً بيك!", "تم تسجيل الدخول بنجاح");
+  }, 2300);
+}
+
+function startConfetti() {
+  const cv = document.getElementById("celebrateCanvas");
+  if (!cv) return;
+  const ctx = cv.getContext("2d");
+  const DPR = Math.min(window.devicePixelRatio || 1, 2);
+  const W = window.innerWidth, H = window.innerHeight;
+  cv.width = W * DPR;
+  cv.height = H * DPR;
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+
+  const COLORS = ["#ffd700", "#ffa500", "#ffe55c", "#ffffff", "#42abff"];
+  const parts = Array.from({ length: 150 }, () => {
+    const a = Math.random() * Math.PI * 2;
+    const sp = Math.random() * 7 + 3;
+    return {
+      x: W / 2,
+      y: H * 0.42,
+      vx: Math.cos(a) * sp,
+      vy: Math.sin(a) * sp - 3.5,
+      g: 0.13,
+      w: Math.random() * 8 + 4,
+      h: Math.random() * 4 + 2,
+      rot: Math.random() * Math.PI,
+      vr: (Math.random() - 0.5) * 0.25,
+      c: COLORS[(Math.random() * COLORS.length) | 0]
+    };
+  });
+  const t0 = performance.now();
+
+  function frame(now) {
+    const t = now - t0;
+    ctx.clearRect(0, 0, W, H);
+    for (const p of parts) {
+      p.vy += p.g;
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vx *= 0.99;
+      p.rot += p.vr;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rot);
+      ctx.globalAlpha = Math.max(0, 1 - t / 2200);
+      ctx.fillStyle = p.c;
+      ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+      ctx.restore();
     }
-  };
-  onChildAdded(messagesRef, forumCallback);
-  forumListenerRef = messagesRef;
+    if (t < 2300) confettiRAF = requestAnimationFrame(frame);
+  }
+  confettiRAF = requestAnimationFrame(frame);
 }
 
-import { off } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
-
-function stopAutoRefresh() {
-  if (forumListenerRef && forumCallback) {
-    off(forumListenerRef, "child_added", forumCallback);
-    forumListenerRef = null;
-    forumCallback = null;
-  }
+function stopConfetti() {
+  if (confettiRAF) cancelAnimationFrame(confettiRAF);
+  const cv = document.getElementById("celebrateCanvas");
+  if (cv) cv.getContext("2d").clearRect(0, 0, cv.width, cv.height);
 }
 
-function initForum() {
-  loadMessages();
-  startAutoRefresh();
-  updateForumUI();
-}
-
-function updateForumUI() {
-  const inp = document.getElementById("forumInputArea");
-  const warn = document.getElementById("forumLoginWarning");
-
-  if (currentUser) {
-    if (inp) inp.style.display = "flex";
-    if (warn) warn.style.display = "none";
-
-    const textarea = document.getElementById("forumMessageInput");
-    const sendBtn = document.getElementById("forumSendBtn");
-
-    if (currentUser.approved === false) {
-      if (textarea) {
-        textarea.disabled = true;
-        textarea.placeholder = "⏳ حسابك في انتظار تفعيل المشرف...";
-      }
-      if (sendBtn) {
-        sendBtn.disabled = true;
-        sendBtn.style.opacity = "0.5";
-      }
-    } else {
-      if (textarea) {
-        textarea.disabled = false;
-        textarea.placeholder = "اكتب رسالتك هنا...";
-      }
-      if (sendBtn) {
-        sendBtn.disabled = false;
-        sendBtn.style.opacity = "1";
-      }
-    }
-  } else {
-    if (inp) inp.style.display = "none";
-    if (warn) warn.style.display = "block";
-  }
-}
-
-// ===== إظهار لوحة المشرف للمشرف فقط =====
-function updateAdminPanelVisibility() {
-  const adminPanel = document.getElementById("adminPanel");
-  const isAdmin = currentUser?.isAdmin === true;
-  if (adminPanel) {
-    adminPanel.style.display = isAdmin ? "block" : "none";
-  }
-  if (isAdmin) {
-    loadPendingUsers();
-    loadAdminStats();
-    loadAdminNotifications();
-  }
+function closeCourseArea() {
+  const area = document.getElementById("courseArea");
+  if (!area) return;
+  area.classList.remove("open");
+  document.body.style.overflow = "";
+  // إيقاف الفيديو اللي كان شغال
+  const main = document.getElementById("caMain");
+  if (main) main.innerHTML = "";
 }
 
 // ===== القائمة المنسدلة =====
@@ -638,98 +757,60 @@ function openAuthModal() {
   m.classList.add("active");
   document.body.style.overflow = "hidden";
 
-  const loginForm = document.getElementById("loginFormElement");
-  const registerForm = document.getElementById("registerFormElement");
-
-  if (loginForm) loginForm.style.display = "flex";
-  if (registerForm) registerForm.style.display = "none";
-
-  document.getElementById("loginEmail").value = "";
-  document.getElementById("loginPassword").value = "";
+  const emailInput = document.getElementById("loginEmail");
+  const passInput = document.getElementById("loginPassword");
+  if (emailInput) emailInput.value = "";
+  if (passInput) passInput.value = "";
+  if (emailInput) emailInput.focus();
 }
 
 function closeAuthModal() {
   const m = document.getElementById("authModalOverlay");
+  if (!m) return;
   m.style.display = "none";
   m.classList.remove("active");
   document.body.style.overflow = "";
 }
 
-function updateHeroButton() {
-  const container = document.getElementById("heroBtnsContainer");
-  if (currentUser) {
-    container.innerHTML = `<button class="btn btn-gold btn-lg" id="heroLogoutBtn"><i class="fas fa-sign-out-alt"></i>تسجيل الخروج</button>`;
-    document
-      .getElementById("heroLogoutBtn")
-      ?.addEventListener("click", async () => {
-        await signOut(auth);
-        showToast("success", "👋 وداعاً!", "تم تسجيل الخروج بنجاح");
-      });
-  } else {
-    container.innerHTML = `<button class="btn btn-gold btn-lg" id="startBtn"><i class="fas fa-rocket"></i>ابدأ رحلتك الآن</button>`;
-    document
-      .getElementById("startBtn")
-      ?.addEventListener("click", openAuthModal);
-  }
-}
-
-function updateUserUI() {
+// ===== واجهة المستخدم حسب حالة الدخول =====
+function updateLoginUI() {
   const area = document.getElementById("userInfoArea");
   const out = document.getElementById("logoutBtnNav");
+  const container = document.getElementById("heroBtnsContainer");
+
   if (currentUser) {
-    const badge = currentUser.isAdmin
-      ? ' <span class="verified-badge" title="مشرف موثوق"><span class="checkmark"></span></span>'
-      : "";
-    if (area)
-      area.innerHTML = `
-            <span id="userNameDisplay">👤 ${currentUser.name}${badge}</span>
-            <button class="btn btn-outline" id="deleteAccountBtn" style="border-color:#ff6464; color:#ff6464; margin-right:8px;">
-                <i class="fas fa-trash-alt"></i>حذف الحساب
-            </button>
-        `;
-    document
-      .getElementById("deleteAccountBtn")
-      ?.addEventListener("click", confirmDeleteAccount);
+    if (area) {
+      area.innerHTML = `<span id="userNameDisplay">👤 ${escapeHtml(
+        currentUser.email
+      )}</span>`;
+    }
     if (out) out.style.display = "flex";
-    updateHeroButton();
-    if (document.getElementById("forum")) {
-      setTimeout(() => {
-        stopAutoRefresh();
-        initForum();
-      }, 500);
+    if (container) {
+      container.innerHTML = `<button class="btn btn-gold btn-lg" id="heroCoursesBtn"><i class="fas fa-graduation-cap"></i>دخول الكورسات</button>`;
+      document
+        .getElementById("heroCoursesBtn")
+        ?.addEventListener("click", openCourseArea);
     }
   } else {
     if (area) {
-      area.innerHTML = `
-                <button class="btn btn-outline" id="loginBtn"><i class="fas fa-sign-in-alt"></i><span>دخول</span></button>
-                <button class="btn btn-gold" id="registerBtn"><i class="fas fa-user-plus"></i><span>ابدأ مجاناً</span></button>
-            `;
-
-      const loginBtn = document.getElementById("loginBtn");
-      const registerBtn = document.getElementById("registerBtn");
-
-      if (loginBtn) {
-        loginBtn.addEventListener("click", (e) => {
-          e.preventDefault();
-          openAuthModal();
-        });
-      }
-
-      if (registerBtn) {
-        registerBtn.addEventListener("click", (e) => {
-          e.preventDefault();
-          openAuthModal();
-          document.getElementById("loginFormElement").style.display = "none";
-          document.getElementById("registerFormElement").style.display = "flex";
-        });
-      }
+      area.innerHTML = `<button class="btn btn-outline" id="loginBtn"><i class="fas fa-sign-in-alt"></i><span>دخول</span></button>`;
+      document
+        .getElementById("loginBtn")
+        ?.addEventListener("click", openAuthModal);
     }
-
     if (out) out.style.display = "none";
-    updateHeroButton();
+    if (container) {
+      container.innerHTML = `<button class="btn btn-gold btn-lg" id="startBtn"><i class="fas fa-rocket"></i>ابدأ رحلتك الآن</button>`;
+      document.getElementById("startBtn")?.addEventListener("click", () => {
+        document
+          .getElementById("courses")
+          ?.scrollIntoView({ behavior: "smooth" });
+      });
+    }
   }
 }
 
+// ===== مستمعي النوافذ =====
 document
   .getElementById("closeAuthModalBtn")
   ?.addEventListener("click", closeAuthModal);
@@ -737,212 +818,105 @@ document.getElementById("authModalOverlay")?.addEventListener("click", (e) => {
   if (e.target === document.getElementById("authModalOverlay"))
     closeAuthModal();
 });
-document
-  .getElementById("switchToRegisterBtn")
-  ?.addEventListener("click", () => {
-    document.getElementById("loginFormElement").style.display = "none";
-    document.getElementById("registerFormElement").style.display = "flex";
-  });
-document.getElementById("switchToLoginBtn")?.addEventListener("click", () => {
-  document.getElementById("registerFormElement").style.display = "none";
-  document.getElementById("loginFormElement").style.display = "flex";
+document.getElementById("logoutBtnNav")?.addEventListener("click", handleLogout);
+document.getElementById("caBackBtn")?.addEventListener("click", () => {
+  closeCourseArea();
 });
-document.getElementById("logoutBtnNav")?.addEventListener("click", async () => {
-  await signOut(auth);
-  showToast("success", "👋 وداعاً!", "تم تسجيل الخروج بنجاح");
-  if (document.getElementById("forum")) {
-    stopAutoRefresh();
-    initForum();
-  }
-});
+document.getElementById("caLogoutBtn")?.addEventListener("click", handleLogout);
 
-document
-  .getElementById("forumSendBtn")
-  ?.addEventListener("click", sendForumMessage);
-document
-  .getElementById("forumMessageInput")
-  ?.addEventListener("input", function () {
-    const c = this.value.length;
-    document.getElementById("charCount").innerHTML = c;
-    this.style.borderColor = c >= 480 ? "#ff6464" : "";
-  });
-document.getElementById("notifyMeBtn")?.addEventListener("click", () => {
-  showToast("info", "📢 قريباً!", "سيتم إضافة الكورسات خلال أيام");
-});
-document
-  .getElementById("openAuthFromForumBtn")
-  ?.addEventListener("click", (e) => {
-    e.preventDefault();
-    openAuthModal();
-  });
-document.getElementById("toastCloseBtn")?.addEventListener("click", closeToast);
 document
   .getElementById("loginSubmitBtn2")
   ?.addEventListener("click", handleLogin);
-document
-  .getElementById("registerSubmitBtn2")
-  ?.addEventListener("click", handleRegister);
+["loginEmail", "loginPassword"].forEach((id) => {
+  document.getElementById(id)?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") handleLogin();
+  });
+});
 
-onAuthStateChanged(auth, async (u) => {
+document.getElementById("notifyMeBtn")?.addEventListener("click", () => {
+  showToast("info", "📢 قريباً!", "سيتم إضافة كورسات جديدة قريباً.. تابعونا!");
+});
+
+// 🧪 زرار المعاينة التجريبية المؤقت — هيتشال قبل النشر
+document.getElementById("demoCourseBtn")?.addEventListener("click", () => {
+  openCourseArea(true);
+  showToast(
+    "info",
+    "🧪 معاينة تجريبية",
+    "ده شكل صفحة الكورس — تسجيل الدخول الحقيقي بيانات Firebase"
+  );
+});
+
+document.getElementById("toastCloseBtn")?.addEventListener("click", closeToast);
+
+// ===== حالة تسجيل الدخول =====
+onAuthStateChanged(auth, (u) => {
+  currentUser = u ? { uid: u.uid, email: u.email || "" } : null;
+  updateLoginUI();
+
   if (u) {
-    const snap = await get(ref(database, "users/" + u.uid));
-    if (snap.exists()) {
-      const d = snap.val();
-
-      if (d.approved === false && d.isAdmin !== true) {
-        showToast(
-          "warning",
-          "⏳ في انتظار التفعيل",
-          "تم تسجيل الدخول لكن حسابك لم يتم تفعيله بعد"
-        );
-
-        currentUser = {
-          uid: u.uid,
-          email: u.email,
-          name: d.name || "مستخدم",
-          phone: d.phone || "",
-          isAdmin: false,
-          approved: false
-        };
-
-        updateUserUI();
-        updateAdminPanelVisibility();
-        closeAuthModal();
-        return;
-      }
-
-      currentUser = {
-        uid: u.uid,
-        email: u.email,
-        name: d.name || "مستخدم",
-        phone: d.phone || "",
-        isAdmin: d.isAdmin === true,
-        approved: d.approved === true
-      };
-    } else {
-      await set(ref(database, "users/" + u.uid), {
-        email: u.email,
-        name: "مستخدم",
-        phone: "",
-        isAdmin: false,
-        approved: false,
-        createdAt: new Date().toISOString()
-      });
-
-      await signOut(auth);
-      showToast(
-        "warning",
-        "⏳ في انتظار الموافقة",
-        "حسابك في انتظار موافقة المشرف"
-      );
-
-      currentUser = null;
-      updateUserUI();
-      updateAdminPanelVisibility();
-      closeAuthModal();
-      return;
-    }
-
-    updateUserUI();
-    updateAdminPanelVisibility();
-    if (document.getElementById("forum")) {
-      setTimeout(() => {
-        stopAutoRefresh();
-        initForum();
-      }, 500);
-    }
     closeAuthModal();
-  } else {
-    currentUser = null;
-    updateUserUI();
-    updateAdminPanelVisibility();
-    if (document.getElementById("forum")) {
-      stopAutoRefresh();
-      initForum();
+    // لو فتح تسجيل الدخول عشان يدخل كورس → دخّله على طول
+    if (pendingCourseEnter) {
+      pendingCourseEnter = false;
+      playEnterCelebration();
     }
   }
 });
 
 async function handleLogin() {
-  const e = document.getElementById("loginEmail").value.trim();
-  const p = document.getElementById("loginPassword").value.trim();
-  if (!e || !p) {
+  const emailInput = document.getElementById("loginEmail");
+  const passInput = document.getElementById("loginPassword");
+  const email = emailInput?.value.trim() || "";
+  const pass = passInput?.value.trim() || "";
+  if (!email || !pass) {
     showToast("error", "⚠️ خطأ", "يرجى إدخال البريد الإلكتروني وكلمة المرور");
     return;
   }
+  const btn = document.getElementById("loginSubmitBtn2");
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = "جاري الدخول...";
+  }
   try {
-    await signInWithEmailAndPassword(auth, e, p);
-  } catch {
-    showToast("error", "⚠️ خطأ", "البريد الإلكتروني أو كلمة المرور غير صحيحة");
+    pendingCourseEnter = true;
+    await signInWithEmailAndPassword(auth, email, pass);
+  } catch (e) {
+    pendingCourseEnter = false;
+    showToast("error", "⚠️ خطأ", loginErrorMessage(e));
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "دخول";
+    }
   }
 }
 
-async function handleRegister() {
-  const fn = document.getElementById("regFirstName").value.trim();
-  const ln = document.getElementById("regLastName").value.trim();
-  const e = document.getElementById("regEmail").value.trim();
-  const p = document.getElementById("regPassword").value.trim();
-  const cp = document.getElementById("regConfirmPassword").value.trim();
-  const phone = document.getElementById("regPhone")?.value.trim() || "";
+function loginErrorMessage(e) {
+  const map = {
+    "auth/invalid-credential": "البريد الإلكتروني أو كلمة المرور غير صحيحة",
+    "auth/wrong-password": "كلمة المرور غير صحيحة",
+    "auth/user-not-found": "لا يوجد حساب بهذه البيانات",
+    "auth/invalid-email": "صيغة البريد الإلكتروني غير صحيحة",
+    "auth/too-many-requests":
+      "محاولات كتير جداً.. استنى دقيقة وجرب تاني",
+    "auth/operation-not-allowed":
+      "تسجيل الدخول بالإيميل غير مفعل — فعّل Email/Password من Firebase Console",
+    "auth/network-request-failed":
+      "مشكلة في الاتصال بالإنترنت.. جرب تاني",
+    "auth/invalid-api-key":
+      "إعدادات Firebase غير صحيحة — راجع إعدادات المشروع"
+  };
+  return map[e?.code] || "حدث خطأ أثناء تسجيل الدخول.. جرب تاني";
+}
 
-  if (!fn || !ln || !e || !p || !cp) {
-    showToast("error", "⚠️ خطأ", "يرجى ملء جميع الحقول");
-    return;
-  }
-  if (p !== cp) {
-    showToast("error", "⚠️ خطأ", "كلمتا المرور غير متطابقتين");
-    return;
-  }
-  if (p.length < 6) {
-    showToast("error", "⚠️ خطأ", "كلمة المرور يجب أن تكون 6 أحرف على الأقل");
-    return;
-  }
-
-  const emailKey = e.replace(/\./g, "_");
-  const deletedCheck = await get(ref(database, `deletedEmails/${emailKey}`));
-  if (deletedCheck.exists()) {
-    showToast(
-      "error",
-      "⚠️ غير مسموح",
-      "هذا البريد الإلكتروني تم حذفه من قبل ولا يمكن إعادة التسجيل به"
-    );
-    return;
-  }
-
+async function handleLogout() {
   try {
-    const cred = await createUserWithEmailAndPassword(auth, e, p);
-    const userData = {
-      email: e,
-      name: `${fn} ${ln}`,
-      phone: phone,
-      isAdmin: false,
-      approved: false,
-      createdAt: new Date().toISOString()
-    };
-    await set(ref(database, "users/" + cred.user.uid), userData);
     await signOut(auth);
-
-    await sendAdminNotification({
-      uid: cred.user.uid,
-      name: `${fn} ${ln}`,
-      email: e,
-      phone: phone
-    });
-
-    showToast(
-      "success",
-      "✅ تم إنشاء الحساب",
-      "تم إنشاء حسابك بنجاح! 🎉\nيرجى انتظار موافقة المشرف لتفعيل حسابك"
-    );
-    closeAuthModal();
-  } catch (er) {
-    showToast(
-      "error",
-      "⚠️ خطأ",
-      er.code === "auth/email-already-in-use"
-        ? "هذا البريد الإلكتروني مسجل بالفعل"
-        : "حدث خطأ في إنشاء الحساب"
-    );
+    closeCourseArea();
+    showToast("success", "👋 وداعاً!", "تم تسجيل الخروج بنجاح");
+  } catch {
+    showToast("error", "⚠️ خطأ", "حدث خطأ أثناء تسجيل الخروج");
   }
 }
 
@@ -954,6 +928,7 @@ function showToast(type, title, msg) {
   const icon = document.getElementById("toastIcon");
   const tTitle = document.getElementById("toastTitle");
   const tMsg = document.getElementById("toastMsg");
+  if (!t || !icon || !tTitle || !tMsg) return;
   if (toastTimer) clearTimeout(toastTimer);
   tTitle.textContent = title;
   tMsg.textContent = msg;
@@ -972,53 +947,7 @@ function showToast(type, title, msg) {
 }
 
 function closeToast() {
-  document.getElementById("toast").classList.remove("show");
-}
-
-async function confirmDeleteAccount() {
-  const confirmed = confirm(
-    "⚠️ تحذير خطير! هل أنت متأكد من حذف حسابك نهائياً؟\n\nسيتم حذف: \n- جميع رسائلك في المنتدى\n- بيانات حسابك بالكامل\n\nهذا الإجراء لا يمكن التراجع عنه!"
-  );
-  if (!confirmed) return;
-
-  const password = prompt("لتأكيد الحذف، أدخل كلمة المرور الخاصة بك:");
-  if (!password) {
-    showToast("error", "❌ تم الإلغاء", "لم يتم حذف الحساب");
-    return;
-  }
-
-  showToast("info", "⏳ جاري الحذف...", "يرجى الانتظار");
-
-  try {
-    const user = auth.currentUser;
-    if (!user) throw new Error("لم يتم العثور على مستخدم");
-
-    const credential = EmailAuthProvider.credential(user.email, password);
-    await reauthenticateWithCredential(user, credential);
-
-    const emailKey = user.email.replace(/\./g, "_");
-    await set(ref(database, `deletedEmails/${emailKey}`), {
-      deletedAt: new Date().toISOString(),
-      uid: user.uid
-    });
-
-    await remove(ref(database, "users/" + user.uid));
-    await user.delete();
-
-    showToast("success", "✅ تم الحذف", "تم حذف حسابك وبياناتك بنجاح");
-    setTimeout(() => window.location.reload(), 2000);
-  } catch (er) {
-    console.error(er);
-    if (er.code === "auth/wrong-password") {
-      showToast("error", "❌ خطأ", "كلمة المرور غير صحيحة");
-    } else {
-      showToast(
-        "error",
-        "⚠️ فشل الحذف",
-        "حدث خطأ أو انتهت صلاحية الجلسة. حاول تسجيل الخروج والدخول ثانية."
-      );
-    }
-  }
+  document.getElementById("toast")?.classList.remove("show");
 }
 
 // ===== روابط التنقل =====
@@ -1029,245 +958,3 @@ document.querySelectorAll('a[href^="#"]').forEach((l) => {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
   });
 });
-
-// ===== إرسال إشعار للمشرفين =====
-async function sendAdminNotification(newUser) {
-  try {
-    const notificationRef = push(ref(database, "adminNotifications"));
-    await set(notificationRef, {
-      id: notificationRef.key,
-      userId: newUser.uid,
-      userName: newUser.name,
-      userEmail: newUser.email,
-      userPhone: newUser.phone || "غير مدخل",
-      registeredAt: new Date().toISOString(),
-      read: false,
-      type: "new_user"
-    });
-  } catch (error) {
-    console.error("خطأ في إرسال الإشعار:", error);
-  }
-}
-
-// ===== ترقية المستخدم الحالي إلى مشرف =====
-async function makeMeAdmin() {
-  if (!currentUser) {
-    showToast("error", "⚠️ خطأ", "يجب تسجيل الدخول أولاً");
-    return;
-  }
-  try {
-    await update(ref(database, `users/${currentUser.uid}`), { isAdmin: true });
-    currentUser.isAdmin = true;
-    showToast("success", "✅ تم الترقية", "تمت ترقيتك إلى مشرف بنجاح");
-    updateAdminPanelVisibility();
-    updateUserUI();
-  } catch (error) {
-    showToast("error", "⚠️ خطأ", error.message);
-  }
-}
-
-// ===== قبول مستخدم جديد =====
-async function approveUser(userId, userName) {
-  try {
-    await update(ref(database, `users/${userId}`), { approved: true });
-    showToast("success", "✅ تم القبول", `تم قبول المستخدم ${userName} بنجاح`);
-    loadPendingUsers();
-    loadAdminStats();
-  } catch (error) {
-    showToast("error", "⚠️ خطأ", error.message);
-  }
-}
-
-// ===== رفض مستخدم جديد =====
-async function rejectUser(userId, userName, userEmail) {
-  if (!confirm(`⚠️ هل تريد حذف حساب ${userName} نهائياً؟`)) return;
-
-  try {
-    const msgsSnap = await get(
-      query(
-        ref(database, "forumMessages"),
-        orderByChild("senderId"),
-        equalTo(userId)
-      )
-    );
-    const deletePromises = [];
-    msgsSnap.forEach((msg) => {
-      deletePromises.push(remove(ref(database, `forumMessages/${msg.key}`)));
-    });
-    await Promise.all(deletePromises);
-
-    await set(ref(database, `deletedEmails/${userEmail.replace(/\./g, "_")}`), {
-      email: userEmail,
-      deletedAt: new Date().toISOString(),
-      userId: userId
-    });
-
-    await remove(ref(database, `users/${userId}`));
-
-    showToast(
-      "success",
-      "🗑️ تم الحذف",
-      `تم حذف حساب ${userName} ويمكنه التسجيل مرة أخرى`
-    );
-    loadPendingUsers();
-    loadAdminStats();
-  } catch (error) {
-    showToast("error", "⚠️ خطأ", error.message);
-  }
-}
-
-// ===== تحميل المستخدمين في انتظار الموافقة =====
-async function loadPendingUsers() {
-  const container = document.getElementById("pendingUsersContainer");
-  if (!container) return;
-
-  try {
-    const snap = await get(ref(database, "users"));
-    const pendingUsers = [];
-    snap.forEach((s) => {
-      const user = s.val();
-      if (user.approved === false && user.isAdmin !== true) {
-        pendingUsers.push({ id: s.key, ...user });
-      }
-    });
-
-    if (pendingUsers.length === 0) {
-      container.innerHTML =
-        '<div class="empty-pending">✅ لا يوجد مستخدمون في انتظار الموافقة</div>';
-      return;
-    }
-
-    container.innerHTML = `
-            <div class="pending-users-list">
-                <h4>👥 المستخدمون في انتظار الموافقة (${
-                  pendingUsers.length
-                })</h4>
-                ${pendingUsers
-                  .map(
-                    (u) => `
-                    <div class="pending-user-item">
-                        <div class="pending-user-info">
-                            <strong>${escapeHtml(u.name)}</strong>
-                            <div>📧 ${escapeHtml(u.email)}</div>
-                            <div>📞 ${escapeHtml(u.phone || "غير مدخل")}</div>
-                            <div>🕐 ${new Date(u.createdAt).toLocaleString(
-                              "ar-EG"
-                            )}</div>
-                        </div>
-                        <div class="pending-user-actions">
-                            <button class="approve-btn" data-id="${
-                              u.id
-                            }" data-name="${escapeHtml(
-                      u.name
-                    )}">✅ قبول</button>
-                            <button class="reject-btn" data-id="${
-                              u.id
-                            }" data-name="${escapeHtml(
-                      u.name
-                    )}" data-email="${escapeHtml(u.email)}">❌ رفض</button>
-                        </div>
-                    </div>
-                `
-                  )
-                  .join("")}
-            </div>
-        `;
-
-    document.querySelectorAll(".approve-btn").forEach((btn) => {
-      btn.addEventListener("click", () =>
-        approveUser(btn.dataset.id, btn.dataset.name)
-      );
-    });
-    document.querySelectorAll(".reject-btn").forEach((btn) => {
-      btn.addEventListener("click", () =>
-        rejectUser(btn.dataset.id, btn.dataset.name, btn.dataset.email)
-      );
-    });
-  } catch (error) {
-    container.innerHTML =
-      '<div class="error">⚠️ حدث خطأ في تحميل المستخدمين</div>';
-  }
-}
-
-// ===== تحميل إحصائيات المشرف =====
-async function loadAdminStats() {
-  try {
-    const usersSnap = await get(ref(database, "users"));
-    let usersCount = 0;
-    usersSnap.forEach(() => usersCount++);
-
-    const msgsSnap = await get(ref(database, "forumMessages"));
-    let msgsCount = 0;
-    msgsSnap.forEach(() => msgsCount++);
-
-    console.log(`📊 إحصائيات: ${usersCount} مستخدم, ${msgsCount} رسالة`);
-  } catch (error) {
-    console.error("خطأ في تحميل الإحصائيات:", error);
-  }
-}
-
-window.makeMeAdmin = function () {
-  makeMeAdmin().catch((err) => console.error(err));
-};
-
-// ===== تحميل إشعارات المشرف =====
-async function loadAdminNotifications() {
-  const container = document.getElementById("adminNotificationsContainer");
-  if (!container) return;
-
-  try {
-    const snap = await get(
-      query(
-        ref(database, "adminNotifications"),
-        orderByChild("registeredAt"),
-        limitToLast(20)
-      )
-    );
-    const notifs = [];
-    snap.forEach((s) => {
-      const n = s.val();
-      if (n) notifs.push(n);
-    });
-    notifs.reverse();
-
-    if (notifs.length === 0) {
-      container.innerHTML =
-        '<div class="empty-notifications">📭 لا توجد إشعارات جديدة</div>';
-      return;
-    }
-
-    container.innerHTML = notifs
-      .map(
-        (n) => `
-            <div class="notification-item ${n.read ? "read" : "unread"}">
-                <div class="notif-icon">🆕</div>
-                <div class="notif-content">
-                    <strong>${escapeHtml(n.userName)}</strong>
-                    <div class="notif-details">
-                        📧 ${escapeHtml(n.userEmail)}<br>
-                        📞 ${escapeHtml(n.userPhone)}<br>
-                        🕐 ${new Date(n.registeredAt).toLocaleString("ar-EG")}
-                    </div>
-                    <p class="notif-message">✉️ يطلب تفعيل حسابه</p>
-                </div>
-                <button class="mark-read-btn" data-id="${
-                  n.id
-                }">✅ تمت القراءة</button>
-            </div>
-        `
-      )
-      .join("");
-
-    document.querySelectorAll(".mark-read-btn").forEach((btn) => {
-      btn.addEventListener("click", async () => {
-        const id = btn.dataset.id;
-        await update(ref(database, `adminNotifications/${id}`), { read: true });
-        btn.remove();
-        showToast("success", "✅ تم", "تم تحديث حالة الإشعار");
-      });
-    });
-  } catch (error) {
-    container.innerHTML =
-      '<div class="error">⚠️ حدث خطأ في تحميل الإشعارات</div>';
-  }
-}

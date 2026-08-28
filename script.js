@@ -6,6 +6,13 @@ import {
   signOut,
   onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import {
+  getFirestore,
+  collection,
+  getDocs,
+  query,
+  orderBy
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 // ===== إعدادات Firebase =====
 const firebaseConfig = {
@@ -20,49 +27,12 @@ const firebaseConfig = {
 // ===== تهيئة Firebase =====
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
+const db = getFirestore(app);
 
-// ============================================================
-// ✏️✏️✏️ بيانات الكورسات — غيّر محتوى كورساتك من هنا بالظبط ✏️✏️✏️
-// ============================================================
-// لإضافة كورس جديد: انسخ بلوك { ... } كامل والصقه تحتيه وغيّر بياناته
-// لإضافة فيديو للكورس: انسخ بلوك { ... } من جوه videos والصقه تحتيه
-// videoUrl بيقبل لينكات Gumlet ويوتيوب وجوجل درايف تلقائياً
-const COURSES = [
-  {
-    id: "course-1",
-    icon: "📚",
-    title: "اسم الكورس هنا — غيّره من script.js",
-    short:
-      "وصف قصير عن الكورس يظهر في الصفحة الرئيسية — غيّره من هنا (✏️ بيانات الكورسات في script.js)",
-    description:
-      "وصف تفصيلي للكورس بيظهر فوق قائمة الفيديوهات.\nغيّره من ملف script.js — البلوك المعلَّم بـ (✏️ بيانات الكورسات).",
-    videos: [
-      {
-        title: "النحو — المعلقات",
-        instructor: "محمد صلاح",
-        duration: "9 دقائق",
-        videoUrl:
-          "https://play.gumlet.io/embed/6a915228ceaa98dd5e09c605?background=false&autoplay=false&loop=false&disable_player_controls=false"
-      },
-      {
-        title: "النحو — إسناد الأفعال",
-        instructor: "محمد صلاح",
-        duration: "8 دقائق",
-        videoUrl:
-          "https://play.gumlet.io/embed/6a915228ceaa98dd5e09c605?background=false&autoplay=false&loop=false&disable_player_controls=false"
-      },
-      {
-        title: "الأدب — تطور الشعر",
-        instructor: "محمد صلاح",
-        duration: "10 دقائق",
-        videoUrl:
-          "https://play.gumlet.io/embed/6a915228ceaa98dd5e09c605?background=false&autoplay=false&loop=false&disable_player_controls=false"
-      }
-    ]
-  }
-];
-// ============================================================
-
+// ===== الكورسات بتتقرا من Firebase Firestore =====
+// إدارة الكورسات والفيديوهات تتم من لوحة الأدمن (ملف محلي غير منشور)
+// الحماية: بيانات الكورس العامة للعرض، والفيديوهات للمسجلين فقط (قواعد Firestore)
+let COURSES = [];
 // ===== المتغيرات العامة =====
 let currentUser = null;
 let sections = ["home", "courses", "features"];
@@ -73,6 +43,7 @@ let pendingCourseEnter = false;
 window.addEventListener("load", () => {
   createParticles();
   renderCourseShowcase();
+  loadCoursesFromFirestore();
   runIntro();
 });
 
@@ -367,10 +338,32 @@ function toEmbedUrl(url) {
   }
 }
 
+// ===== تحميل الكورسات من Firestore (بيانات العرض العامة) =====
+async function loadCoursesFromFirestore() {
+  try {
+    const snap = await getDocs(
+      query(collection(db, "courses"), orderBy("order"))
+    );
+    COURSES = snap.docs.map((d) => ({
+      id: d.id,
+      ...d.data(),
+      videos: null
+    }));
+    renderCourseShowcase();
+  } catch (e) {
+    console.error("تعذر تحميل الكورسات من Firestore:", e);
+  }
+}
+
 // ===== عارضة الكورسات المقفولة (في قسم الكورسات) =====
 function renderCourseShowcase() {
   const wrap = document.getElementById("courseCards");
   if (!wrap) return;
+  if (!COURSES.length) {
+    wrap.innerHTML =
+      '<div class="ca-empty" style="grid-column:1/-1;">📚 الكورسات قريباً.. تابعونا!</div>';
+    return;
+  }
   wrap.innerHTML = COURSES.map(
     (c) => `
         <div class="course-lock-card">
@@ -378,7 +371,7 @@ function renderCourseShowcase() {
           <div class="course-lock-icon">${c.icon}</div>
           <h3 class="course-lock-title">${escapeHtml(c.title)}</h3>
           <p class="course-lock-desc">${escapeHtml(c.short)}</p>
-          <div class="course-lock-meta">🎬 ${(c.videos || []).length} فيديو</div>
+          <div class="course-lock-meta">🎬 ${c.videoCount ?? 0} فيديو</div>
           <button class="btn btn-gold course-enter-btn" data-course="${c.id}">
             <i class="fas fa-lock-open"></i>دخول الكورس
           </button>
@@ -446,7 +439,7 @@ function renderCoursesList() {
           <div class="ca-pick-icon">${c.icon}</div>
           <h3>${escapeHtml(c.title)}</h3>
           <p>${escapeHtml(c.short)}</p>
-          <div class="ca-pick-meta">🎬 ${(c.videos || []).length} فيديو</div>
+          <div class="ca-pick-meta">🎬 ${c.videoCount ?? 0} فيديو</div>
           <button class="btn btn-gold ca-open-course" data-idx="${i}">عرض الدروس</button>
         </div>`
       ).join("") +
@@ -460,42 +453,84 @@ function renderCoursesList() {
   );
 }
 
-// 2) شاشة دروس الكورس (قائمة الفيديوهات)
+// 2) شاشة دروس الكورس (الفيديوهات بتتقرا من Firestore - للمسجلين فقط)
 function renderCourseLessons(idx) {
   const c = COURSES[idx];
   if (!c) return;
   caState.courseIdx = idx;
   caState.videoIdx = null;
-  const vids = c.videos || [];
-  const html = `
+  if (!c.videos) {
+    caRender(
+      lessonsShell(c, '<div class="ca-empty">⏳ جاري تحميل الدروس...</div>')
+    );
+    loadLessons(idx);
+    return;
+  }
+  paintLessons(idx);
+}
+
+async function loadLessons(idx) {
+  const c = COURSES[idx];
+  if (!c) return;
+  try {
+    const snap = await getDocs(
+      query(collection(db, "courses", c.id, "videos"), orderBy("order"))
+    );
+    c.videos = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    c.loadError = false;
+  } catch (e) {
+    console.error(e);
+    c.videos = [];
+    c.loadError = true;
+  }
+  if (caState.courseIdx === idx) paintLessons(idx);
+}
+
+function lessonsShell(c, inner) {
+  return `
     <button class="ca-back">← كل الكورسات</button>
     <div class="ca-course">
       <h2 class="ca-course-title">${c.icon} ${escapeHtml(c.title)}</h2>
       <p class="ca-course-desc">${escapeHtml(c.description)}</p>
-      ${
-        vids.length
-          ? `<div class="lesson-list">` +
-            vids.map(
-              (v, i) => `
-              <div class="lesson-row" data-c="${idx}" data-v="${i}">
-                <div class="lesson-thumb"><span>▶</span><small>شاهد</small></div>
-                <div class="lesson-info">
-                  <div class="lesson-title">
-                    <span class="lesson-num">${i + 1}</span>${escapeHtml(v.title)}
-                  </div>
-                  <div class="lesson-meta">
-                    <span>👤 ${escapeHtml(v.instructor || "غير محدد")}</span>
-                    <span>⏱ ${escapeHtml(v.duration || "—")}</span>
-                  </div>
-                </div>
-              </div>`
-            ).join("") +
-            `</div>`
-          : '<div class="ca-empty">📭 لا توجد فيديوهات في الكورس ده لسه</div>'
-      }
+      ${inner}
     </div>`;
-  caRender(html);
-  document.querySelector(".ca-back")?.addEventListener("click", renderCoursesList);
+}
+
+function paintLessons(idx) {
+  const c = COURSES[idx];
+  if (!c) return;
+  let inner;
+  if (c.loadError) {
+    inner =
+      '<div class="ca-empty">🔒 الدروس محمية — سجل الدخول بالبيانات اللي وصلولك لتشاهدها</div>';
+  } else if (!c.videos || !c.videos.length) {
+    inner = '<div class="ca-empty">📭 لا توجد فيديوهات في الكورس ده لسه</div>';
+  } else {
+    inner =
+      '<div class="lesson-list">' +
+      c.videos
+        .map(
+          (v, i) => `
+          <div class="lesson-row" data-c="${idx}" data-v="${i}">
+            <div class="lesson-thumb"><span>▶</span><small>شاهد</small></div>
+            <div class="lesson-info">
+              <div class="lesson-title">
+                <span class="lesson-num">${i + 1}</span>${escapeHtml(v.title)}
+              </div>
+              <div class="lesson-meta">
+                <span>👤 ${escapeHtml(v.instructor || "غير محدد")}</span>
+                <span>⏱ ${escapeHtml(v.duration || "—")}</span>
+              </div>
+            </div>
+          </div>`
+        )
+        .join("") +
+      '</div>';
+  }
+  caRender(lessonsShell(c, inner));
+  document
+    .querySelector(".ca-back")
+    ?.addEventListener("click", renderCoursesList);
   document.querySelectorAll(".lesson-row").forEach((r) =>
     r.addEventListener("click", () =>
       openLesson(Number(r.dataset.c), Number(r.dataset.v))

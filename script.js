@@ -37,7 +37,7 @@ let COURSES = [];
 let currentUser = null;
 let sections = ["home", "courses", "features"];
 let currentSectionIndex = 0;
-let pendingCourseEnter = false;
+let pendingCourseId = null;
 
 // ===== بداية التشغيل =====
 window.addEventListener("load", () => {
@@ -301,6 +301,13 @@ function courseThumbHtml(c) {
     : "📚";
 }
 
+// ===== صورة الدرس: بتعرض صورة لو موجودة، وإلا مربع افتراضي =====
+function lessonThumbHtml(v) {
+  return v.imageUrl
+    ? `<div class="lesson-thumb lesson-thumb-imgbox"><img src="${escapeHtml(v.imageUrl)}" alt="" loading="lazy"></div>`
+    : `<div class="lesson-thumb"><span>▶</span><small>شاهد</small></div>`;
+}
+
 // ===== تحويل لينكات الفيديو لصيغة التشغيل (يوتيوب / درايف) =====
 function toEmbedUrl(url) {
   try {
@@ -387,12 +394,14 @@ function renderCourseShowcase() {
     `
   ).join("");
   wrap.querySelectorAll(".course-enter-btn").forEach((btn) => {
-    btn.addEventListener("click", enterCourse);
+    btn.addEventListener("click", () => enterCourse(btn.dataset.course));
   });
 }
 
-function enterCourse() {
+function enterCourse(courseId) {
   if (!currentUser) {
+    // نتذكر الكورس المطلوب، وبعد تسجيل الدخول ندخل عليه مباشرة
+    pendingCourseId = courseId;
     showToast(
       "info",
       "🔐 كورس مغلق",
@@ -401,21 +410,30 @@ function enterCourse() {
     openAuthModal();
     return;
   }
-  openCourseArea();
+  openCourseArea(false, courseId);
 }
 
 // ===== منطقة الكورسات الخاصة (معزولة عن المنصة) =====
 // حالة التنقل جوه المنطقة: قائمة الكورسات ← دروس الكورس ← تشغيل فيديو
 const caState = { demo: false, courseIdx: null, videoIdx: null };
 
-function openCourseArea(demo = false) {
+function openCourseArea(demo = false, courseId = null) {
   const area = document.getElementById("courseArea");
   if (!area) return;
   caState.demo = demo;
-  renderCoursesList();
   area.classList.add("open");
   document.body.style.overflow = "hidden";
   area.scrollTop = 0;
+
+  // لو طلب كورس محدد → ندخل على دروسه مباشرة بدل قائمة الكورسات
+  if (courseId) {
+    const idx = COURSES.findIndex((c) => c.id === courseId);
+    if (idx !== -1) {
+      renderCourseLessons(idx);
+      return;
+    }
+  }
+  renderCoursesList();
 }
 
 function caRender(html) {
@@ -520,7 +538,7 @@ function paintLessons(idx) {
         .map(
           (v, i) => `
           <div class="lesson-row" data-c="${idx}" data-v="${i}">
-            <div class="lesson-thumb"><span>▶</span><small>شاهد</small></div>
+            ${lessonThumbHtml(v)}
             <div class="lesson-info">
               <div class="lesson-title">
                 <span class="lesson-num">${i + 1}</span>${escapeHtml(v.title)}
@@ -632,10 +650,10 @@ function toggleVideoFullscreen() {
 // ===== احتفال نجاح الدخول للكورسات =====
 let confettiRAF = null;
 
-function playEnterCelebration() {
+function playEnterCelebration(courseId = null) {
   const ov = document.getElementById("caCelebrate");
   if (!ov) {
-    openCourseArea();
+    openCourseArea(false, courseId);
     return;
   }
   ov.classList.add("show");
@@ -647,7 +665,7 @@ function playEnterCelebration() {
   setTimeout(() => {
     ov.classList.remove("show");
     stopConfetti();
-    openCourseArea();
+    openCourseArea(false, courseId);
     showToast("success", "✅ أهلاً بيك!", "تم تسجيل الدخول بنجاح");
   }, 2300);
 }
@@ -832,7 +850,7 @@ function updateLoginUI() {
       container.innerHTML = `<button class="btn btn-gold btn-lg" id="heroCoursesBtn"><i class="fas fa-graduation-cap"></i>دخول الكورسات</button>`;
       document
         .getElementById("heroCoursesBtn")
-        ?.addEventListener("click", openCourseArea);
+        ?.addEventListener("click", () => openCourseArea(false));
     }
   } else {
     if (area) {
@@ -899,10 +917,11 @@ onAuthStateChanged(auth, (u) => {
 
   if (u) {
     closeAuthModal();
-    // لو فتح تسجيل الدخول عشان يدخل كورس → دخّله على طول
-    if (pendingCourseEnter) {
-      pendingCourseEnter = false;
-      playEnterCelebration();
+    // لو فتح تسجيل الدخول عشان يدخل كورس محدد → دخّله على طول
+    if (pendingCourseId) {
+      const target = pendingCourseId;
+      pendingCourseId = null;
+      playEnterCelebration(target);
     }
   }
 });
@@ -922,10 +941,8 @@ async function handleLogin() {
     btn.textContent = "جاري الدخول...";
   }
   try {
-    pendingCourseEnter = true;
     await signInWithEmailAndPassword(auth, email, pass);
   } catch (e) {
-    pendingCourseEnter = false;
     showToast("error", "⚠️ خطأ", loginErrorMessage(e));
   } finally {
     if (btn) {

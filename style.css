@@ -1465,6 +1465,19 @@ footer {
   font-weight: 700;
 }
 
+.lesson-thumb-imgbox {
+  background: var(--black-3);
+  padding: 0;
+  overflow: hidden;
+}
+
+.lesson-thumb-imgbox img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
 .lesson-info {
   flex: 1;
   min-width: 0;

@@ -293,7 +293,6 @@ function escapeHtml(t) {
   return d.innerHTML;
 }
 
-<<<<<<< HEAD
 // ===== أيقونة/صورة الكورس: بتعرض imageUrl لو موجودة، وإلا إيموجي افتراضي =====
 // (الكورسات القديمة كانت بتتخزن بحقل icon، دلوقتي بتتخزن بحقل imageUrl)
 function courseThumbHtml(c) {
@@ -302,8 +301,6 @@ function courseThumbHtml(c) {
     : "📚";
 }
 
-=======
->>>>>>> 750120cae49d9673af2afec012fa40b6d29892d0
 // ===== تحويل لينكات الفيديو لصيغة التشغيل (يوتيوب / درايف) =====
 function toEmbedUrl(url) {
   try {
@@ -379,11 +376,7 @@ function renderCourseShowcase() {
     (c) => `
         <div class="course-lock-card">
           <div class="course-lock-badge">🔒 كورس مغلق</div>
-<<<<<<< HEAD
           <div class="course-lock-icon">${courseThumbHtml(c)}</div>
-=======
-          <div class="course-lock-icon">${c.icon}</div>
->>>>>>> 750120cae49d9673af2afec012fa40b6d29892d0
           <h3 class="course-lock-title">${escapeHtml(c.title)}</h3>
           <p class="course-lock-desc">${escapeHtml(c.short)}</p>
           <div class="course-lock-meta">🎬 ${c.videoCount ?? 0} فيديو</div>
@@ -451,11 +444,7 @@ function renderCoursesList() {
       COURSES.map(
         (c, i) => `
         <div class="ca-pick-card">
-<<<<<<< HEAD
           <div class="ca-pick-icon">${courseThumbHtml(c)}</div>
-=======
-          <div class="ca-pick-icon">${c.icon}</div>
->>>>>>> 750120cae49d9673af2afec012fa40b6d29892d0
           <h3>${escapeHtml(c.title)}</h3>
           <p>${escapeHtml(c.short)}</p>
           <div class="ca-pick-meta">🎬 ${c.videoCount ?? 0} فيديو</div>
@@ -509,11 +498,7 @@ function lessonsShell(c, inner) {
   return `
     <button class="ca-back">← كل الكورسات</button>
     <div class="ca-course">
-<<<<<<< HEAD
       <h2 class="ca-course-title">${courseThumbHtml(c)} ${escapeHtml(c.title)}</h2>
-=======
-      <h2 class="ca-course-title">${c.icon} ${escapeHtml(c.title)}</h2>
->>>>>>> 750120cae49d9673af2afec012fa40b6d29892d0
       <p class="ca-course-desc">${escapeHtml(c.description)}</p>
       ${inner}
     </div>`;
@@ -1015,8 +1000,4 @@ document.querySelectorAll('a[href^="#"]').forEach((l) => {
     const id = l.getAttribute("href").slice(1);
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
   });
-<<<<<<< HEAD
 });
-=======
-});
->>>>>>> 750120cae49d9673af2afec012fa40b6d29892d0

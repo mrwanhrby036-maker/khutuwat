@@ -17,4 +17,8 @@ service cloud.firestore {
       }
     }
   }
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> 750120cae49d9673af2afec012fa40b6d29892d0

@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" role="img" aria-label="شعار خطوات نحو التميز">
+  <defs>
+    <linearGradient id="gold" x1="35" y1="28" x2="205" y2="204" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fff4a8"/>
+      <stop offset="0.45" stop-color="#ffd700"/>
+      <stop offset="1" stop-color="#c98200"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="42%" r="62%">
+      <stop offset="0" stop-color="#fff6bb" stop-opacity="0.34"/>
+      <stop offset="1" stop-color="#ffd700" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="10" stdDeviation="9" flood-color="#000000" flood-opacity="0.45"/>
+      <feDropShadow dx="0" dy="0" stdDeviation="5" flood-color="#ffd700" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+  <circle cx="120" cy="120" r="106" fill="#080808"/>
+  <circle cx="120" cy="120" r="98" fill="url(#glow)"/>
+  <circle cx="120" cy="120" r="88" fill="none" stroke="url(#gold)" stroke-width="8"/>
+  <g filter="url(#shadow)">
+    <path d="M42 116Q120 43 198 116" fill="none" stroke="url(#gold)" stroke-width="13" stroke-linecap="round"/>
+    <path d="M66 128L120 94L174 128L120 162Z" fill="url(#gold)"/>
+    <path d="M90 164Q120 187 150 164" fill="none" stroke="#ffe680" stroke-width="10" stroke-linecap="round"/>
+    <circle cx="72" cy="87" r="8" fill="#ffffff" opacity="0.94"/>
+    <circle cx="168" cy="87" r="8" fill="#ffffff" opacity="0.94"/>
+  </g>
+</svg>

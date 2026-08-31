@@ -29,6 +29,112 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
+
+// ===== Security helpers: treat Firestore/browser data as untrusted =====
+const MAX_TEXT = {
+  title: 120,
+  short: 220,
+  description: 1200,
+  instructor: 90,
+  duration: 40
+};
+const YOUTUBE_ID_RE = /^[A-Za-z0-9_-]{11}$/;
+const DRIVE_ID_RE = /^[A-Za-z0-9_-]{10,120}$/;
+const GUMLET_ID_RE = /^[A-Za-z0-9_-]{8,160}$/;
+const DOC_ID_RE = /^[A-Za-z0-9_-]{1,160}$/;
+// الصور والفيديوهات يمكن أن تكون من مصادر خارجية، لكن HTTPS فقط.
+// إن أردت Allowlist صارمة لاحقًا يمكن تقييدها هنا وفي Firestore Rules.
+const ALLOWED_IMAGE_HOSTS = null;
+
+function limitText(value, max = 200) {
+  return String(value ?? "").replace(/[\u0000-\u001F\u007F]/g, "").trim().slice(0, max);
+}
+
+function safeInt(value, fallback = 1, min = 0, max = 9999) {
+  const n = Number(value);
+  if (!Number.isInteger(n) || n < min || n > max) return fallback;
+  return n;
+}
+
+function safePercent(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return 50;
+  return Math.min(100, Math.max(0, Math.round(n)));
+}
+
+function safeZoom(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return 100;
+  return Math.min(220, Math.max(100, Math.round(n)));
+}
+
+function imageStyleAttr(imageRecord) {
+  const x = safePercent(imageRecord?.imagePositionX);
+  const y = safePercent(imageRecord?.imagePositionY);
+  const zoom = safeZoom(imageRecord?.imageZoom);
+  return `object-position:${x}% ${y}%; transform:scale(${zoom / 100});`;
+}
+
+function isSafeDocId(id) {
+  return DOC_ID_RE.test(String(id ?? ""));
+}
+
+function safeUrl(value, { hosts = null, allowPath = () => true } = {}) {
+  const raw = String(value ?? "").trim();
+  if (!raw || raw.length > 2048) return "";
+  try {
+    const u = new URL(raw);
+    const host = u.hostname.toLowerCase().replace(/^www\./, "");
+    if (u.protocol !== "https:") return "";
+    if (u.username || u.password) return "";
+    if (hosts && !hosts.has(host) && ![...hosts].some((h) => host.endsWith("." + h))) return "";
+    if (!allowPath(u, host)) return "";
+    return u.toString();
+  } catch {
+    return "";
+  }
+}
+
+function safeImageUrl(value) {
+  return safeUrl(value, { hosts: ALLOWED_IMAGE_HOSTS });
+}
+
+function sanitizeCourse(raw, id = "") {
+  return {
+    id: String(id || raw?.id || ""),
+    title: limitText(raw?.title, MAX_TEXT.title),
+    short: limitText(raw?.short, MAX_TEXT.short),
+    description: limitText(raw?.description, MAX_TEXT.description),
+    order: safeInt(raw?.order, 1, 0, 9999),
+    videoCount: safeInt(raw?.videoCount, 0, 0, 9999),
+    imageUrl: safeImageUrl(raw?.imageUrl),
+    imagePositionX: safePercent(raw?.imagePositionX),
+    imagePositionY: safePercent(raw?.imagePositionY),
+    imageZoom: safeZoom(raw?.imageZoom),
+    videos: raw?.videos ?? null,
+    loadError: Boolean(raw?.loadError)
+  };
+}
+
+function sanitizeVideo(raw, id = "") {
+  return {
+    id: String(id || raw?.id || ""),
+    title: limitText(raw?.title, MAX_TEXT.title),
+    instructor: limitText(raw?.instructor, MAX_TEXT.instructor),
+    duration: limitText(raw?.duration, MAX_TEXT.duration),
+    order: safeInt(raw?.order, 1, 0, 9999),
+    videoUrl: safeVideoUrl(raw?.videoUrl),
+    imageUrl: safeImageUrl(raw?.imageUrl),
+    imagePositionX: safePercent(raw?.imagePositionX),
+    imagePositionY: safePercent(raw?.imagePositionY),
+    imageZoom: safeZoom(raw?.imageZoom)
+  };
+}
+
+function attr(value) {
+  return escapeHtml(String(value ?? ""));
+}
+
 // ===== الكورسات بتتقرا من Firebase Firestore =====
 // إدارة الكورسات والفيديوهات تتم من لوحة الأدمن (ملف محلي غير منشور)
 // الحماية: بيانات الكورس العامة للعرض، والفيديوهات للمسجلين فقط (قواعد Firestore)
@@ -37,7 +143,7 @@ let COURSES = [];
 let currentUser = null;
 let sections = ["home", "courses", "features"];
 let currentSectionIndex = 0;
-let pendingCourseEnter = false;
+let pendingCourseId = null;
 
 // ===== بداية التشغيل =====
 window.addEventListener("load", () => {
@@ -296,67 +402,78 @@ function escapeHtml(t) {
 // ===== أيقونة/صورة الكورس: بتعرض imageUrl لو موجودة، وإلا إيموجي افتراضي =====
 // (الكورسات القديمة كانت بتتخزن بحقل icon، دلوقتي بتتخزن بحقل imageUrl)
 function courseThumbHtml(c) {
-  return c.imageUrl
-    ? `<img class="course-thumb-img" src="${escapeHtml(c.imageUrl)}" alt="" loading="lazy">`
+  const imageUrl = safeImageUrl(c?.imageUrl);
+  return imageUrl
+    ? `<span class="course-thumb-frame"><img class="course-thumb-img" src="${attr(imageUrl)}" alt="" style="${attr(imageStyleAttr(c))}" loading="lazy" referrerpolicy="no-referrer"></span>`
     : "📚";
 }
 
+// ===== صورة الدرس: بتعرض صورة لو موجودة، وإلا مربع افتراضي =====
+function lessonThumbHtml(v) {
+  const imageUrl = safeImageUrl(v?.imageUrl);
+  return imageUrl
+    ? `<div class="lesson-thumb lesson-thumb-imgbox"><img src="${attr(imageUrl)}" alt="" style="${attr(imageStyleAttr(v))}" loading="lazy" referrerpolicy="no-referrer"></div>`
+    : `<div class="lesson-thumb"><span>▶</span><small>شاهد</small></div>`;
+}
+
 // ===== تحويل لينكات الفيديو لصيغة التشغيل (يوتيوب / درايف) =====
+function safeVideoUrl(url) {
+  return safeUrl(url, {
+    hosts: new Set(["youtu.be", "youtube.com", "drive.google.com", "play.gumlet.io", "gumlet.tv"]),
+    allowPath: (u, h) => {
+      if (h === "youtu.be") return YOUTUBE_ID_RE.test(u.pathname.slice(1));
+      if (h.endsWith("youtube.com")) return true;
+      if (h.endsWith("drive.google.com")) return true;
+      if (h === "play.gumlet.io") return u.pathname.startsWith("/embed/");
+      if (h.endsWith("gumlet.tv")) return u.pathname.startsWith("/watch/");
+      return false;
+    }
+  });
+}
+
+// ===== تحويل لينكات الفيديو لصيغة التشغيل (يوتيوب / درايف / Gumlet) =====
 function toEmbedUrl(url) {
+  const safe = safeVideoUrl(url);
+  if (!safe) return null;
   try {
-    const u = new URL(url);
-    const h = u.hostname.replace(/^www\./, "");
-    // يوتيوب
+    const u = new URL(safe);
+    const h = u.hostname.toLowerCase().replace(/^www\./, "");
+    let videoId = "";
+
     if (h === "youtu.be") {
-      return "https://www.youtube.com/embed" + u.pathname;
+      videoId = u.pathname.slice(1);
+      return YOUTUBE_ID_RE.test(videoId) ? `https://www.youtube.com/embed/${videoId}` : null;
     }
     if (h.endsWith("youtube.com")) {
-      if (u.pathname === "/watch") {
-        return (
-          "https://www.youtube.com/embed/" + (u.searchParams.get("v") || "")
-        );
-      }
-      if (u.pathname.startsWith("/shorts/")) {
-        return "https://www.youtube.com/embed/" + u.pathname.split("/")[2];
-      }
-      if (u.pathname.startsWith("/live/")) {
-        return "https://www.youtube.com/embed/" + u.pathname.split("/")[2];
-      }
-      if (u.pathname.startsWith("/embed/")) {
-        return url;
-      }
+      if (u.pathname === "/watch") videoId = u.searchParams.get("v") || "";
+      else if (u.pathname.startsWith("/shorts/") || u.pathname.startsWith("/live/") || u.pathname.startsWith("/embed/")) videoId = u.pathname.split("/")[2] || "";
+      return YOUTUBE_ID_RE.test(videoId) ? `https://www.youtube.com/embed/${videoId}` : null;
     }
-    // جوجل درايف
     if (h.endsWith("drive.google.com")) {
-      const m = url.match(/\/file\/d\/([^/]+)/) || url.match(/[?&]id=([^&]+)/);
-      if (m) {
-        return "https://drive.google.com/file/d/" + m[1] + "/preview";
-      }
+      const m = safe.match(/\/file\/d\/([^/]+)/) || safe.match(/[?&]id=([^&]+)/);
+      const id = m ? decodeURIComponent(m[1]) : "";
+      return DRIVE_ID_RE.test(id) ? `https://drive.google.com/file/d/${encodeURIComponent(id)}/preview` : null;
     }
-    // Gumlet
     if (h === "play.gumlet.io" && u.pathname.startsWith("/embed/")) {
-      return url;
+      const id = u.pathname.split("/")[2] || "";
+      return GUMLET_ID_RE.test(id) ? u.toString() : null;
     }
     if (h.endsWith("gumlet.tv") && u.pathname.startsWith("/watch/")) {
-      return "https://play.gumlet.io/embed/" + u.pathname.split("/")[2];
+      const id = u.pathname.split("/")[2] || "";
+      return GUMLET_ID_RE.test(id) ? `https://play.gumlet.io/embed/${encodeURIComponent(id)}` : null;
     }
-    return null; // مش لينك تشغيل مباشر → هنستخدم مشغل فيديو عادي
+    return null;
   } catch {
     return null;
   }
 }
-
 // ===== تحميل الكورسات من Firestore (بيانات العرض العامة) =====
 async function loadCoursesFromFirestore() {
   try {
     const snap = await getDocs(
       query(collection(db, "courses"), orderBy("order"))
     );
-    COURSES = snap.docs.map((d) => ({
-      id: d.id,
-      ...d.data(),
-      videos: null
-    }));
+    COURSES = snap.docs.map((d) => sanitizeCourse({ ...d.data(), videos: null }, d.id));
     renderCourseShowcase();
   } catch (e) {
     console.error("تعذر تحميل الكورسات من Firestore:", e);
@@ -387,12 +504,14 @@ function renderCourseShowcase() {
     `
   ).join("");
   wrap.querySelectorAll(".course-enter-btn").forEach((btn) => {
-    btn.addEventListener("click", enterCourse);
+    btn.addEventListener("click", () => enterCourse(btn.dataset.course));
   });
 }
 
-function enterCourse() {
+function enterCourse(courseId) {
   if (!currentUser) {
+    // نتذكر الكورس المطلوب، وبعد تسجيل الدخول ندخل عليه مباشرة
+    pendingCourseId = courseId;
     showToast(
       "info",
       "🔐 كورس مغلق",
@@ -401,21 +520,30 @@ function enterCourse() {
     openAuthModal();
     return;
   }
-  openCourseArea();
+  openCourseArea(false, courseId);
 }
 
 // ===== منطقة الكورسات الخاصة (معزولة عن المنصة) =====
 // حالة التنقل جوه المنطقة: قائمة الكورسات ← دروس الكورس ← تشغيل فيديو
 const caState = { demo: false, courseIdx: null, videoIdx: null };
 
-function openCourseArea(demo = false) {
+function openCourseArea(demo = false, courseId = null) {
   const area = document.getElementById("courseArea");
   if (!area) return;
   caState.demo = demo;
-  renderCoursesList();
   area.classList.add("open");
   document.body.style.overflow = "hidden";
   area.scrollTop = 0;
+
+  // لو طلب كورس محدد → ندخل على دروسه مباشرة بدل قائمة الكورسات
+  if (courseId) {
+    const idx = COURSES.findIndex((c) => c.id === courseId);
+    if (idx !== -1) {
+      renderCourseLessons(idx);
+      return;
+    }
+  }
+  renderCoursesList();
 }
 
 function caRender(html) {
@@ -484,7 +612,7 @@ async function loadLessons(idx) {
     const snap = await getDocs(
       query(collection(db, "courses", c.id, "videos"), orderBy("order"))
     );
-    c.videos = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    c.videos = snap.docs.map((d) => sanitizeVideo(d.data(), d.id));
     c.loadError = false;
   } catch (e) {
     console.error(e);
@@ -520,7 +648,7 @@ function paintLessons(idx) {
         .map(
           (v, i) => `
           <div class="lesson-row" data-c="${idx}" data-v="${i}">
-            <div class="lesson-thumb"><span>▶</span><small>شاهد</small></div>
+            ${lessonThumbHtml(v)}
             <div class="lesson-info">
               <div class="lesson-title">
                 <span class="lesson-num">${i + 1}</span>${escapeHtml(v.title)}
@@ -566,11 +694,12 @@ function openLesson(ci, vi) {
       "watermark_text=" +
       encodeURIComponent(currentUser.email);
   }
+  const directVideo = safeVideoUrl(v.videoUrl);
   const player = embed
-    ? `<iframe src="${embed}" title="${escapeHtml(
-        v.title
-      )}" referrerpolicy="origin" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen></iframe>`
-    : `<video controls preload="metadata" src="${v.videoUrl}"></video>`;
+    ? `<iframe src="${attr(embed)}" title="${attr(v.title)}" referrerpolicy="origin" sandbox="allow-scripts allow-same-origin allow-presentation" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen></iframe>`
+    : directVideo
+      ? `<video controls controlsList="nodownload" preload="metadata" src="${attr(directVideo)}"></video>`
+      : `<div class="ca-empty">⚠️ رابط الفيديو غير مسموح أو غير صالح</div>`;
 
   const html = `
     <button class="ca-back">← دروس الكورس</button>
@@ -632,10 +761,10 @@ function toggleVideoFullscreen() {
 // ===== احتفال نجاح الدخول للكورسات =====
 let confettiRAF = null;
 
-function playEnterCelebration() {
+function playEnterCelebration(courseId = null) {
   const ov = document.getElementById("caCelebrate");
   if (!ov) {
-    openCourseArea();
+    openCourseArea(false, courseId);
     return;
   }
   ov.classList.add("show");
@@ -647,7 +776,7 @@ function playEnterCelebration() {
   setTimeout(() => {
     ov.classList.remove("show");
     stopConfetti();
-    openCourseArea();
+    openCourseArea(false, courseId);
     showToast("success", "✅ أهلاً بيك!", "تم تسجيل الدخول بنجاح");
   }, 2300);
 }
@@ -832,7 +961,7 @@ function updateLoginUI() {
       container.innerHTML = `<button class="btn btn-gold btn-lg" id="heroCoursesBtn"><i class="fas fa-graduation-cap"></i>دخول الكورسات</button>`;
       document
         .getElementById("heroCoursesBtn")
-        ?.addEventListener("click", openCourseArea);
+        ?.addEventListener("click", () => openCourseArea(false));
     }
   } else {
     if (area) {
@@ -899,10 +1028,11 @@ onAuthStateChanged(auth, (u) => {
 
   if (u) {
     closeAuthModal();
-    // لو فتح تسجيل الدخول عشان يدخل كورس → دخّله على طول
-    if (pendingCourseEnter) {
-      pendingCourseEnter = false;
-      playEnterCelebration();
+    // لو فتح تسجيل الدخول عشان يدخل كورس محدد → دخّله على طول
+    if (pendingCourseId) {
+      const target = pendingCourseId;
+      pendingCourseId = null;
+      playEnterCelebration(target);
     }
   }
 });
@@ -911,9 +1041,18 @@ async function handleLogin() {
   const emailInput = document.getElementById("loginEmail");
   const passInput = document.getElementById("loginPassword");
   const email = emailInput?.value.trim() || "";
-  const pass = passInput?.value.trim() || "";
+  const pass = passInput?.value || "";
   if (!email || !pass) {
     showToast("error", "⚠️ خطأ", "يرجى إدخال البريد الإلكتروني وكلمة المرور");
+    return;
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254 || pass.length > 1024) {
+    showToast("error", "⚠️ خطأ", "صيغة بيانات الدخول غير صحيحة");
+    return;
+  }
+  const lockUntil = Number(sessionStorage.getItem("loginLockUntil") || 0);
+  if (Date.now() < lockUntil) {
+    showToast("error", "⚠️ محاولات كثيرة", "انتظر قليلاً قبل المحاولة مرة أخرى");
     return;
   }
   const btn = document.getElementById("loginSubmitBtn2");
@@ -922,10 +1061,11 @@ async function handleLogin() {
     btn.textContent = "جاري الدخول...";
   }
   try {
-    pendingCourseEnter = true;
     await signInWithEmailAndPassword(auth, email, pass);
   } catch (e) {
-    pendingCourseEnter = false;
+    if (e?.code === "auth/too-many-requests") {
+      sessionStorage.setItem("loginLockUntil", String(Date.now() + 60_000));
+    }
     showToast("error", "⚠️ خطأ", loginErrorMessage(e));
   } finally {
     if (btn) {

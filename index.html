@@ -4,7 +4,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>خطوات نحو التميز</title>
+  <title>خطوات نحو التميز | منصة تعليمية خيرية للتربية الخاصة وفهم التوحد</title>
+  <meta name="description" content="منصة تعليمية خيرية تقدم محتوى معرفيًا عامًا للطلاب والمهتمين بمجال التربية الخاصة حول فهم اضطراب طيف التوحد وطرق التواصل والتعامل التربوي مع الأطفال ذوي الاحتياجات التعليمية الخاصة.">
+  <meta name="keywords" content="منصة تعليمية خيرية, تعليم التربية الخاصة, التربية الخاصة, اضطراب طيف التوحد, فهم التوحد, التوعية بالتوحد, مبادئ التوحد, التواصل مع أطفال التوحد, التعامل التربوي مع أطفال التوحد, الأطفال ذوو الاحتياجات التعليمية الخاصة, الاحتياجات التعليمية الخاصة, استراتيجيات تعليمية للتربية الخاصة, مهارات التواصل التربوي, دعم التعلم للأطفال, تعليم شامل, محتوى تعليمي عن التوحد, كورسات التربية الخاصة, دورات تعليمية في التربية الخاصة, تعلم أساسيات التربية الخاصة, موارد تعليمية للتربية الخاصة, إرشادات تربوية عامة, التعامل داخل الصف, المعلم والتربية الخاصة, طلاب التربية الخاصة, تدريب معرفي للتربية الخاصة">
+  <meta name="robots" content="index, follow">
+  <meta property="og:title" content="خطوات نحو التميز | منصة تعليمية خيرية للتربية الخاصة">
+  <meta property="og:description" content="محتوى تعليمي عام حول التربية الخاصة وفهم اضطراب طيف التوحد وطرق التواصل والتعامل التربوي، دون تقديم تشخيص أو علاج أو ترخيص مهني.">
+  <link rel="icon" type="image/svg+xml" href="logo-steps-excellence.svg">
+  <link rel="shortcut icon" href="logo-steps-excellence.svg">
+  <link rel="apple-touch-icon" href="logo-steps-excellence.svg">
 
   <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -21,7 +29,7 @@
     <canvas id="introCanvas"></canvas>
     <div class="intro-core">
       <div class="intro-orb"></div>
-      <div class="intro-logo">🎓</div>
+      <div class="intro-logo"><img src="logo-steps-excellence.svg" alt="شعار خطوات نحو التميز"></div>
       <h1 class="intro-title">
         <span class="w">خطوات</span>
         <span class="w">نحو</span>
@@ -36,7 +44,7 @@
   <nav id="navbar">
     <div class="nav-container">
       <div class="nav-logo">
-        <span class="logo-icon">🎓</span>
+        <img class="logo-icon" src="logo-steps-excellence.svg" alt="شعار خطوات نحو التميز">
         <span class="logo-text">خطوات نحو التميز</span>
       </div>
 
@@ -69,10 +77,10 @@
     <div class="hero-content fade-up">
       <div class="hero-badge">
         <i class="fas fa-star"></i>
-        <span>المنصة التعليمية العربية الأولى</span>
+        <span>منصة تعليمية خيرية للتربية الخاصة</span>
       </div>
       <h1 class="hero-title">خطوات نحو <span class="gold-text">التميز</span></h1>
-      <p class="hero-desc">رحلتك نحو الاحتراف تبدأ هنا. تعلم من أفضل المدربين العرب في مجالات البرمجة والتصميم والتسويق.</p>
+      <p class="hero-desc">محتوى تعليمي عام يساعد الطلاب والمهتمين على فهم مبادئ اضطراب طيف التوحد وطرق التواصل والتعامل التربوي مع الأطفال ذوي الاحتياجات التعليمية الخاصة.</p>
       <div class="hero-btns" id="heroBtnsContainer">
         <button class="btn btn-gold btn-lg" id="startBtn">
           <i class="fas fa-rocket"></i>ابدأ رحلتك الآن
@@ -89,18 +97,11 @@
     <div class="container">
       <div class="section-head fade-up">
         <span class="section-tag">📚 الكورسات</span>
-        <h2 class="section-title">اكتشف <span class="gold-text">كورساتنا</span></h2>
-        <p class="section-desc">كورسات مغلقة لأعضاء المنصة — الدخول بالبيانات اللي وصلتك</p>
+        <h2 class="section-title">اكتشف <span class="gold-text">محتوانا التعليمي</span></h2>
+        <p class="section-desc">دورات ومواد معرفية في التربية الخاصة وفهم التوحد — الدخول بالبيانات التي وصلتك</p>
       </div>
       <div class="course-cards fade-up" id="courseCards"></div>
-      <div class="courses-notify fade-up">
-        <button class="btn btn-gold" id="demoCourseBtn">
-          <i class="fas fa-flask"></i>معاينة تجريبية لصفحة الكورس (مؤقتة)
-        </button>
-        <button class="btn btn-outline" id="notifyMeBtn">
-          <i class="fas fa-bell"></i>أعلمني عند إضافة كورسات جديدة
-        </button>
-      </div>
+
     </div>
   </section>
 
@@ -110,23 +111,23 @@
       <div class="section-head fade-up">
         <span class="section-tag">⭐ لماذا نحن</span>
         <h2 class="section-title">مميزات <span class="gold-text">المنصة</span></h2>
-        <p class="section-desc">كل ما تحتاجه لرحلة تعليمية ناجحة في مكان واحد</p>
+        <p class="section-desc">موارد تعليمية مبسطة للوعي بالتربية الخاصة والتواصل التربوي الداعم</p>
       </div>
       <div class="features-grid">
         <div class="feature-card fade-up">
           <div class="feat-icon gold-bg"><i class="fas fa-video"></i></div>
-          <h3>فيديوهات عالية الجودة</h3>
-          <p>محتوى مرئي احترافي بدقة HD يمكنك مشاهدته في أي وقت</p>
+          <h3>محتوى تعليمي مبسط</h3>
+          <p>مواد معرفية منظمة تساعدك على فهم المفاهيم الأساسية في التربية الخاصة والتوحد</p>
         </div>
         <div class="feature-card fade-up">
           <div class="feat-icon"><i class="fas fa-users"></i></div>
-          <h3>مجتمع تعليمي</h3>
-          <p>انضم لمجتمع من الطلاب وتبادل الخبرات والمعرفة</p>
+          <h3>لغة تربوية مسؤولة</h3>
+          <p>صياغة تعليمية عامة لا تقدم تشخيصًا طبيًا أو علاجًا نفسيًا أو طبيًا</p>
         </div>
         <div class="feature-card fade-up">
           <div class="feat-icon"><i class="fas fa-mobile-alt"></i></div>
           <h3>متعدد الأجهزة</h3>
-          <p>تعلم من أي جهاز في أي وقت ومن أي مكان</p>
+          <p>تعلّم من أي جهاز في أي وقت ومن أي مكان</p>
         </div>
       </div>
     </div>
@@ -138,7 +139,7 @@
       <div class="footer-simple">
         <div class="footer-brand">
           <div class="nav-logo" style="margin-bottom: 15px;">
-            <span class="logo-icon">🎓</span>
+            <img class="logo-icon" src="logo-steps-excellence.svg" alt="شعار خطوات نحو التميز">
             <span class="logo-text">خطوات نحو التميز</span>
           </div>
         </div>
@@ -195,7 +196,7 @@
   <!-- ===== منطقة الكورسات الخاصة (معزولة عن المنصة) ===== -->
   <div id="courseArea">
     <header class="ca-header">
-      <div class="ca-logo"><span>🎓</span><span>خطوات نحو التميز</span></div>
+      <div class="ca-logo"><img class="logo-icon" src="logo-steps-excellence.svg" alt="شعار خطوات نحو التميز"><span>خطوات نحو التميز</span></div>
       <div class="ca-actions">
         <button class="btn btn-outline" id="caLogoutBtn">
           <i class="fas fa-sign-out-alt"></i><span>خروج</span>
@@ -240,6 +241,6 @@
 
   <script type="module" src="script.js"></script>
 
-</body>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a33af6035c66e228',t:'MTc4ODE2ODA0NA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 
 </html>

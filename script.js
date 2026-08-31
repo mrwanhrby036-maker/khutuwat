@@ -135,6 +135,23 @@ function attr(value) {
   return escapeHtml(String(value ?? ""));
 }
 
+function svgIcon(name, className = "") {
+  const classes = `svg-icon ${className}`.trim();
+  const common = `class="${classes}" viewBox="0 0 24 24" aria-hidden="true" focusable="false"`;
+  const icons = {
+    book: `<svg ${common}><path d="M5 4.5C5 3.7 5.7 3 6.5 3H20v15.5H7.2C6 18.5 5 19.5 5 20.7V4.5Z" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M5 20.7C5 19.5 6 18.5 7.2 18.5H20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M8.5 7h7M8.5 10.5h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`,
+    lock: `<svg ${common}><rect x="5" y="10" width="14" height="10" rx="2.4" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8 10V8a4 4 0 0 1 8 0v2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="15" r="1.3" fill="currentColor"/></svg>`,
+    play: `<svg ${common}><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M10 8.8v6.4c0 .6.7 1 1.2.7l5-3.2c.5-.3.5-1.1 0-1.4l-5-3.2c-.5-.3-1.2.1-1.2.7Z" fill="currentColor"/></svg>`,
+    video: `<svg ${common}><rect x="4" y="6.5" width="12" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M16 10l4-2.4v8.8L16 14v-4Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>`,
+    user: `<svg ${common}><circle cx="12" cy="8" r="3.4" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M5.5 20a6.5 6.5 0 0 1 13 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`,
+    clock: `<svg ${common}><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 7.5V12l3 2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+    graduation: `<svg ${common}><path d="M3 8l9-4 9 4-9 4-9-4Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M7 10.2V15c0 1.5 2.2 3 5 3s5-1.5 5-3v-4.8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M21 8v5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`,
+    star: `<svg ${common}><path d="M12 3.8l2.3 4.7 5.2.8-3.8 3.7.9 5.2-4.6-2.4-4.6 2.4.9-5.2-3.8-3.7 5.2-.8L12 3.8Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>`
+  };
+  return icons[name] || "";
+}
+
+
 // ===== الكورسات بتتقرا من Firebase Firestore =====
 // إدارة الكورسات والفيديوهات تتم من لوحة الأدمن (ملف محلي غير منشور)
 // الحماية: بيانات الكورس العامة للعرض، والفيديوهات للمسجلين فقط (قواعد Firestore)
@@ -405,7 +422,7 @@ function courseThumbHtml(c) {
   const imageUrl = safeImageUrl(c?.imageUrl);
   return imageUrl
     ? `<span class="course-thumb-frame"><img class="course-thumb-img" src="${attr(imageUrl)}" alt="" style="${attr(imageStyleAttr(c))}" loading="lazy" referrerpolicy="no-referrer"></span>`
-    : "📚";
+    : svgIcon("book", "svg-icon-large");
 }
 
 // ===== صورة الدرس: بتعرض صورة لو موجودة، وإلا مربع افتراضي =====
@@ -413,7 +430,7 @@ function lessonThumbHtml(v) {
   const imageUrl = safeImageUrl(v?.imageUrl);
   return imageUrl
     ? `<div class="lesson-thumb lesson-thumb-imgbox"><img src="${attr(imageUrl)}" alt="" style="${attr(imageStyleAttr(v))}" loading="lazy" referrerpolicy="no-referrer"></div>`
-    : `<div class="lesson-thumb"><span>▶</span><small>شاهد</small></div>`;
+    : `<div class="lesson-thumb">${svgIcon("play", "svg-icon-lesson")}<small>شاهد</small></div>`;
 }
 
 // ===== تحويل لينكات الفيديو لصيغة التشغيل (يوتيوب / درايف) =====
@@ -486,18 +503,18 @@ function renderCourseShowcase() {
   if (!wrap) return;
   if (!COURSES.length) {
     wrap.innerHTML =
-      '<div class="ca-empty" style="grid-column:1/-1;">📚 الكورسات قريباً.. تابعونا!</div>';
+      `<div class="ca-empty" style="grid-column:1/-1;">${svgIcon("book")} الكورسات قريباً.. تابعونا!</div>`;
     return;
   }
   wrap.innerHTML = COURSES.map(
     (c) => `
         <div class="course-lock-card">
-          <div class="course-lock-badge">🔒 كورس مغلق</div>
+          <div class="course-lock-badge">${svgIcon("lock")} كورس مغلق</div>
           <div class="course-lock-icon">${courseThumbHtml(c)}</div>
           <h3 class="course-lock-title">${escapeHtml(c.title)}</h3>
           <p class="course-lock-desc">${escapeHtml(c.short)}</p>
-          <div class="course-lock-meta">🎬 ${c.videoCount ?? 0} فيديو</div>
-          <button class="btn btn-gold course-enter-btn" data-course="${c.id}">
+          <div class="course-lock-meta">${svgIcon("video")} ${c.videoCount ?? 0} فيديو</div>
+          <button class="btn btn-gold course-enter-btn" data-course="${attr(c.id)}">
             <i class="fas fa-lock-open"></i>دخول الكورس
           </button>
         </div>
@@ -557,7 +574,7 @@ function caRender(html) {
       )}</span>`;
   main.innerHTML = `
       <div class="ca-welcome">
-        <h1>🎓 كورساتك الخاصة</h1>
+        <h1>${svgIcon("graduation", "svg-icon-heading")} كورساتك الخاصة</h1>
         <p>${who}</p>
       </div>${html}`;
   area.scrollTop = 0;
@@ -575,7 +592,7 @@ function renderCoursesList() {
           <div class="ca-pick-icon">${courseThumbHtml(c)}</div>
           <h3>${escapeHtml(c.title)}</h3>
           <p>${escapeHtml(c.short)}</p>
-          <div class="ca-pick-meta">🎬 ${c.videoCount ?? 0} فيديو</div>
+          <div class="ca-pick-meta">${svgIcon("video")} ${c.videoCount ?? 0} فيديو</div>
           <button class="btn btn-gold ca-open-course" data-idx="${i}">عرض الدروس</button>
         </div>`
       ).join("") +
@@ -638,7 +655,7 @@ function paintLessons(idx) {
   let inner;
   if (c.loadError) {
     inner =
-      '<div class="ca-empty">🔒 الدروس محمية — سجل الدخول بالبيانات اللي وصلولك لتشاهدها</div>';
+      `<div class="ca-empty">${svgIcon("lock")} الدروس محمية — سجل الدخول بالبيانات اللي وصلولك لتشاهدها</div>`;
   } else if (!c.videos || !c.videos.length) {
     inner = '<div class="ca-empty">📭 لا توجد فيديوهات في الكورس ده لسه</div>';
   } else {
@@ -654,8 +671,8 @@ function paintLessons(idx) {
                 <span class="lesson-num">${i + 1}</span>${escapeHtml(v.title)}
               </div>
               <div class="lesson-meta">
-                <span>👤 ${escapeHtml(v.instructor || "غير محدد")}</span>
-                <span>⏱ ${escapeHtml(v.duration || "—")}</span>
+                <span>${svgIcon("user")} ${escapeHtml(v.instructor || "غير محدد")}</span>
+                <span>${svgIcon("clock")} ${escapeHtml(v.duration || "—")}</span>
               </div>
             </div>
           </div>`
@@ -704,10 +721,10 @@ function openLesson(ci, vi) {
   const html = `
     <button class="ca-back">← دروس الكورس</button>
     <div class="ca-course">
-      <h2 class="ca-course-title">🎬 ${escapeHtml(v.title)}</h2>
+      <h2 class="ca-course-title">${svgIcon("video", "svg-icon-heading")} ${escapeHtml(v.title)}</h2>
       <div class="lesson-meta" style="margin-bottom:15px;">
-        <span>👤 ${escapeHtml(v.instructor || "غير محدد")}</span>
-        <span>⏱ ${escapeHtml(v.duration || "—")}</span>
+        <span>${svgIcon("user")} ${escapeHtml(v.instructor || "غير محدد")}</span>
+        <span>${svgIcon("clock")} ${escapeHtml(v.duration || "—")}</span>
       </div>
       <div class="ca-video" id="caVideoBox">${player}</div>
       <div class="ca-video-tools">
@@ -952,7 +969,7 @@ function updateLoginUI() {
 
   if (currentUser) {
     if (area) {
-      area.innerHTML = `<span id="userNameDisplay">👤 ${escapeHtml(
+      area.innerHTML = `<span id="userNameDisplay">${svgIcon("user")} ${escapeHtml(
         currentUser.email
       )}</span>`;
     }

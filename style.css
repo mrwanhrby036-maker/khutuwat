@@ -518,6 +518,59 @@ ul {
   margin-top: 10px;
 }
 
+
+/* ===== Inline SVG icons replacing decorative emoji ===== */
+.svg-icon {
+  width: 1.15em;
+  height: 1.15em;
+  display: inline-block;
+  vertical-align: -0.18em;
+  color: currentColor;
+  flex-shrink: 0;
+}
+
+.svg-icon-large {
+  width: 58px;
+  height: 58px;
+  color: var(--gold);
+  filter: drop-shadow(0 0 12px rgba(255, 215, 0, 0.28));
+}
+
+.svg-icon-lesson {
+  width: 22px;
+  height: 22px;
+}
+
+.svg-icon-heading {
+  width: 1.05em;
+  height: 1.05em;
+  color: var(--gold);
+}
+
+.section-tag,
+.course-lock-badge,
+.course-lock-meta,
+.ca-pick-meta,
+.lesson-meta span,
+#userNameDisplay,
+.ca-welcome h1,
+.ca-course-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.ca-welcome h1,
+.ca-course-title {
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.thumb-empty .svg-icon {
+  width: 24px;
+  height: 24px;
+}
+
 /* ===== قسم المميزات ===== */
 .features-grid {
   display: grid;
@@ -1513,6 +1566,7 @@ footer {
   height: 100%;
   object-fit: cover;
   display: block;
+  transform-origin: center center;
 }
 
 .lesson-info {

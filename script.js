@@ -123,7 +123,6 @@ function sanitizeVideo(raw, id = "") {
     instructor: limitText(raw?.instructor, MAX_TEXT.instructor),
     duration: limitText(raw?.duration, MAX_TEXT.duration),
     order: safeInt(raw?.order, 1, 0, 9999),
-    videoUrl: safeVideoUrl(raw?.videoUrl),
     imageUrl: safeImageUrl(raw?.imageUrl),
     imagePositionX: safePercent(raw?.imagePositionX),
     imagePositionY: safePercent(raw?.imagePositionY),
@@ -158,6 +157,7 @@ function svgIcon(name, className = "") {
 let COURSES = [];
 // ===== المتغيرات العامة =====
 let currentUser = null;
+let currentAuthUser = null;
 let sections = ["home", "courses", "features"];
 let currentSectionIndex = 0;
 let pendingCourseId = null;
@@ -691,32 +691,43 @@ function paintLessons(idx) {
   );
 }
 
+
+async function getVideoAccess(courseId, videoId) {
+  if (!currentAuthUser) throw new Error("AUTH_REQUIRED");
+  if (!isSafeDocId(courseId) || !isSafeDocId(videoId)) throw new Error("BAD_ID");
+  const idToken = await currentAuthUser.getIdToken();
+  const response = await fetch("/api/get-video-access", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${idToken}`
+    },
+    body: JSON.stringify({ courseId, videoId }),
+    credentials: "same-origin"
+  });
+  if (!response.ok) throw new Error("VIDEO_ACCESS_DENIED");
+  const responseBody = await response.json();
+  const embedUrl = safeVideoUrl(responseBody?.embedUrl);
+  if (!embedUrl) throw new Error("INVALID_VIDEO_URL");
+  return embedUrl;
+}
+
 // 3) شاشة تشغيل الدرس
-function openLesson(ci, vi) {
+async function openLesson(ci, vi) {
   const c = COURSES[ci];
   const v = c?.videos?.[vi];
   if (!c || !v) return;
   caState.videoIdx = vi;
 
-  let embed = toEmbedUrl(v.videoUrl);
-  // علامة مائية بإيميل الطالب على مشغل Gumlet (لو مفعّلتها من إعدادات Gumlet)
-  if (
-    embed &&
-    embed.includes("play.gumlet.io/embed") &&
-    currentUser?.email &&
-    !caState.demo
-  ) {
-    embed +=
-      (embed.includes("?") ? "&" : "?") +
-      "watermark_text=" +
-      encodeURIComponent(currentUser.email);
+  let player;
+  try {
+    const embedUrl = await getVideoAccess(c.id, v.id);
+    const embed = toEmbedUrl(embedUrl) || embedUrl;
+    player = `<iframe src="${attr(embed)}" title="${attr(v.title)}" referrerpolicy="origin" sandbox="allow-scripts allow-same-origin allow-presentation" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen></iframe>`;
+  } catch (error) {
+    console.error("Video access failed", error?.message || error);
+    player = `<div class="ca-empty">⚠️ تعذر فتح الفيديو. سجل الدخول مرة أخرى أو تواصل مع الإدارة.</div>`;
   }
-  const directVideo = safeVideoUrl(v.videoUrl);
-  const player = embed
-    ? `<iframe src="${attr(embed)}" title="${attr(v.title)}" referrerpolicy="origin" sandbox="allow-scripts allow-same-origin allow-presentation" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen></iframe>`
-    : directVideo
-      ? `<video controls controlsList="nodownload" preload="metadata" src="${attr(directVideo)}"></video>`
-      : `<div class="ca-empty">⚠️ رابط الفيديو غير مسموح أو غير صالح</div>`;
 
   const html = `
     <button class="ca-back">← دروس الكورس</button>
@@ -1040,6 +1051,7 @@ document.getElementById("toastCloseBtn")?.addEventListener("click", closeToast);
 
 // ===== حالة تسجيل الدخول =====
 onAuthStateChanged(auth, (u) => {
+  currentAuthUser = u;
   currentUser = u ? { uid: u.uid, email: u.email || "" } : null;
   updateLoginUI();
 

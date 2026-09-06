@@ -156,11 +156,39 @@ function svgIcon(name, className = "") {
 // إدارة الكورسات والفيديوهات تتم من لوحة الأدمن (ملف محلي غير منشور)
 // الحماية: بيانات الكورس العامة للعرض، والفيديوهات للمسجلين فقط (قواعد Firestore)
 let COURSES = [];
+let coursesLoaded = false; // false = لسه بيتحمل من Firestore (نعرض سكيلتون)، true = وصل الرد (فاضي أو فيه كورسات)
 // ===== المتغيرات العامة =====
 let currentUser = null;
 let sections = ["home", "courses", "features"];
 let currentSectionIndex = 0;
 let pendingCourseId = null;
+let freshLogin = false; // true فقط لو المستخدم ضغط "دخول" الآن (مش استعادة جلسة قديمة)
+
+// ===== إخفاء شيمر تحميل الثمبنيلز (بديل عن onload/onerror الـ inline عشان يشتغل مع CSP صارم) =====
+// load/error مش بيعملوا bubble على <img>، فلازم نستخدم capture phase على مستوى الـ document
+document.addEventListener(
+  "load",
+  (e) => {
+    const img = e.target;
+    if (img?.tagName === "IMG") {
+      const wrap = img.closest(".thumb-loading");
+      if (wrap) wrap.classList.replace("thumb-loading", "thumb-loaded");
+    }
+  },
+  true
+);
+
+document.addEventListener(
+  "error",
+  (e) => {
+    const img = e.target;
+    if (img?.tagName === "IMG") {
+      const wrap = img.closest(".thumb-loading");
+      if (wrap) wrap.classList.remove("thumb-loading");
+    }
+  },
+  true
+);
 
 // ===== بداية التشغيل =====
 window.addEventListener("load", () => {
@@ -418,10 +446,11 @@ function escapeHtml(t) {
 
 // ===== أيقونة/صورة الكورس: بتعرض imageUrl لو موجودة، وإلا إيموجي افتراضي =====
 // (الكورسات القديمة كانت بتتخزن بحقل icon، دلوقتي بتتخزن بحقل imageUrl)
+// أثناء تحميل الصورة بتتعرض شيمر سكيلتون وبتختفي أول ما الصورة توصل (onload)
 function courseThumbHtml(c) {
   const imageUrl = safeImageUrl(c?.imageUrl);
   return imageUrl
-    ? `<span class="course-thumb-frame"><img class="course-thumb-img" src="${attr(imageUrl)}" alt="" style="${attr(imageStyleAttr(c))}" loading="lazy" referrerpolicy="no-referrer"></span>`
+    ? `<span class="course-thumb-frame thumb-loading"><img class="course-thumb-img" src="${attr(imageUrl)}" alt="" style="${attr(imageStyleAttr(c))}" loading="lazy" referrerpolicy="no-referrer"></span>`
     : svgIcon("book", "svg-icon-large");
 }
 
@@ -429,8 +458,61 @@ function courseThumbHtml(c) {
 function lessonThumbHtml(v) {
   const imageUrl = safeImageUrl(v?.imageUrl);
   return imageUrl
-    ? `<div class="lesson-thumb lesson-thumb-imgbox"><img src="${attr(imageUrl)}" alt="" style="${attr(imageStyleAttr(v))}" loading="lazy" referrerpolicy="no-referrer"></div>`
+    ? `<div class="lesson-thumb lesson-thumb-imgbox thumb-loading"><img src="${attr(imageUrl)}" alt="" style="${attr(imageStyleAttr(v))}" loading="lazy" referrerpolicy="no-referrer"></div>`
     : `<div class="lesson-thumb">${svgIcon("play", "svg-icon-lesson")}<small>شاهد</small></div>`;
+}
+
+// ===== قوالب سكيلتون اللودينج (كروت الكورسات / بطاقات الاختيار / صفوف الدروس) =====
+function skeletonCourseCards(count = 3) {
+  return Array.from(
+    { length: count },
+    () => `
+        <div class="skel-card">
+          <div class="skel skel-badge"></div>
+          <div class="skel skel-icon"></div>
+          <div class="skel skel-title"></div>
+          <div class="skel skel-text"></div>
+          <div class="skel skel-text short"></div>
+          <div class="skel skel-meta"></div>
+          <div class="skel skel-btn"></div>
+        </div>`
+  ).join("");
+}
+
+function skeletonPickCards(count = 3) {
+  return (
+    `<div class="ca-grid">` +
+    Array.from(
+      { length: count },
+      () => `
+        <div class="skel-card">
+          <div class="skel skel-icon" style="height:90px;"></div>
+          <div class="skel skel-title"></div>
+          <div class="skel skel-text"></div>
+          <div class="skel skel-meta"></div>
+          <div class="skel skel-btn"></div>
+        </div>`
+    ).join("") +
+    `</div>`
+  );
+}
+
+function skeletonLessonRows(count = 4) {
+  return (
+    `<div class="lesson-list">` +
+    Array.from(
+      { length: count },
+      () => `
+        <div class="skel-lesson-row">
+          <div class="skel skel-lesson-thumb"></div>
+          <div class="skel-lesson-info">
+            <div class="skel skel-lesson-title"></div>
+            <div class="skel skel-lesson-meta"></div>
+          </div>
+        </div>`
+    ).join("") +
+    `</div>`
+  );
 }
 
 // ===== تحويل لينكات الفيديو لصيغة التشغيل (يوتيوب / درايف) =====
@@ -491,9 +573,17 @@ async function loadCoursesFromFirestore() {
       query(collection(db, "courses"), orderBy("order"))
     );
     COURSES = snap.docs.map((d) => sanitizeCourse({ ...d.data(), videos: null }, d.id));
-    renderCourseShowcase();
   } catch (e) {
     console.error("تعذر تحميل الكورسات من Firestore:", e);
+    COURSES = [];
+  } finally {
+    coursesLoaded = true;
+    renderCourseShowcase();
+    // لو المستخدم فاتح منطقة الكورسات وقاعد يستنى (سكيلتون) ولسه في شاشة الاختيار → حدّثها كمان
+    const area = document.getElementById("courseArea");
+    if (area?.classList.contains("open") && caState.courseIdx === null) {
+      renderCoursesList();
+    }
   }
 }
 
@@ -501,6 +591,10 @@ async function loadCoursesFromFirestore() {
 function renderCourseShowcase() {
   const wrap = document.getElementById("courseCards");
   if (!wrap) return;
+  if (!coursesLoaded) {
+    wrap.innerHTML = skeletonCourseCards(3);
+    return;
+  }
   if (!COURSES.length) {
     wrap.innerHTML =
       `<div class="ca-empty" style="grid-column:1/-1;">${svgIcon("book")} الكورسات قريباً.. تابعونا!</div>`;
@@ -584,6 +678,10 @@ function caRender(html) {
 function renderCoursesList() {
   caState.courseIdx = null;
   caState.videoIdx = null;
+  if (!coursesLoaded) {
+    caRender(skeletonPickCards(3));
+    return;
+  }
   const html = COURSES.length
     ? `<div class="ca-grid">` +
       COURSES.map(
@@ -613,9 +711,7 @@ function renderCourseLessons(idx) {
   caState.courseIdx = idx;
   caState.videoIdx = null;
   if (!c.videos) {
-    caRender(
-      lessonsShell(c, '<div class="ca-empty">⏳ جاري تحميل الدروس...</div>')
-    );
+    caRender(lessonsShell(c, skeletonLessonRows(4)));
     loadLessons(idx);
     return;
   }
@@ -778,12 +874,16 @@ function toggleVideoFullscreen() {
 // ===== احتفال نجاح الدخول للكورسات =====
 let confettiRAF = null;
 
-function playEnterCelebration(courseId = null) {
+function showCelebration({ title, message, onDone } = {}) {
   const ov = document.getElementById("caCelebrate");
   if (!ov) {
-    openCourseArea(false, courseId);
+    onDone?.();
     return;
   }
+  const titleEl = document.getElementById("celebrateTitle");
+  const msgEl = document.getElementById("celebrateMsg");
+  if (titleEl && title) titleEl.textContent = title;
+  if (msgEl && message) msgEl.textContent = message;
   ov.classList.add("show");
   try {
     startConfetti();
@@ -793,9 +893,31 @@ function playEnterCelebration(courseId = null) {
   setTimeout(() => {
     ov.classList.remove("show");
     stopConfetti();
-    openCourseArea(false, courseId);
-    showToast("success", "✅ أهلاً بيك!", "تم تسجيل الدخول بنجاح");
+    onDone?.();
   }, 2300);
+}
+
+function playEnterCelebration(courseId = null) {
+  showCelebration({
+    title: "🎉 أهلاً بيك من تاني!",
+    message: "تم فتح كورساتك الخاصة بنجاح.. بالتوفيق 💪",
+    onDone: () => {
+      openCourseArea(false, courseId);
+      showToast("success", "✅ أهلاً بيك!", "تم تسجيل الدخول بنجاح");
+    }
+  });
+}
+
+// ===== احتفال ترحيبي عام عند تسجيل الدخول للمنصة (بدون فتح كورس) =====
+function playWelcomeCelebration() {
+  const name = currentUser?.email ? currentUser.email.split("@")[0] : "";
+  showCelebration({
+    title: name ? `🎉 أهلاً بيك يا ${name}!` : "🎉 أهلاً بيك!",
+    message: "تم تسجيل دخولك بنجاح.. استمتع برحلتك التعليمية 💪",
+    onDone: () => {
+      showToast("success", "✅ أهلاً بيك!", "تم تسجيل الدخول بنجاح");
+    }
+  });
 }
 
 function startConfetti() {
@@ -1045,12 +1167,16 @@ onAuthStateChanged(auth, (u) => {
 
   if (u) {
     closeAuthModal();
-    // لو فتح تسجيل الدخول عشان يدخل كورس محدد → دخّله على طول
+    // لو فتح تسجيل الدخول عشان يدخل كورس محدد → دخّله على طول مع احتفال الكورس
     if (pendingCourseId) {
       const target = pendingCourseId;
       pendingCourseId = null;
       playEnterCelebration(target);
+    } else if (freshLogin) {
+      // تسجيل دخول عادي (مش عن طريق زرار كورس مقفول) → احتفال ترحيبي عام
+      playWelcomeCelebration();
     }
+    freshLogin = false;
   }
 });
 
@@ -1077,9 +1203,11 @@ async function handleLogin() {
     btn.disabled = true;
     btn.textContent = "جاري الدخول...";
   }
+  freshLogin = true; // لازم تتحدد قبل النداء لأن onAuthStateChanged ممكن يشتغل قبل رجوع الـ await
   try {
     await signInWithEmailAndPassword(auth, email, pass);
   } catch (e) {
+    freshLogin = false; // فشل الدخول → إلغاء العلامة عشان ميتفعلش الاحتفال غلط
     if (e?.code === "auth/too-many-requests") {
       sessionStorage.setItem("loginLockUntil", String(Date.now() + 60_000));
     }

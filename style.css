@@ -2012,3 +2012,142 @@ body.revealed .hero-image {
 #courseArea.open .lesson-row:nth-child(4) { animation-delay: 0.36s; }
 #courseArea.open .lesson-row:nth-child(5) { animation-delay: 0.43s; }
 #courseArea.open .lesson-row:nth-child(6) { animation-delay: 0.5s; }
+
+/* ===== سكيلتون التحميل (Skeleton Loading) ===== */
+@keyframes skeletonShimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.skel {
+  position: relative;
+  overflow: hidden;
+  background: var(--black-4);
+  border-radius: 8px;
+}
+
+.skel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 215, 0, 0.09), transparent);
+  animation: skeletonShimmer 1.6s ease-in-out infinite;
+}
+
+.skel-card {
+  background: var(--black-3);
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius-lg);
+  padding: 35px 25px;
+  text-align: center;
+}
+
+.skel-badge {
+  width: 110px;
+  height: 26px;
+  margin: 0 auto 18px;
+  border-radius: 50px;
+}
+
+.skel-icon {
+  width: 100%;
+  max-width: 220px;
+  height: 110px;
+  margin: 0 auto 16px;
+  border-radius: 12px;
+}
+
+.skel-title {
+  width: 70%;
+  height: 20px;
+  margin: 0 auto 12px;
+}
+
+.skel-text {
+  width: 92%;
+  height: 12px;
+  margin: 0 auto 8px;
+}
+
+.skel-text.short {
+  width: 60%;
+  margin-bottom: 0;
+}
+
+.skel-meta {
+  width: 95px;
+  height: 14px;
+  margin: 18px auto 20px;
+}
+
+.skel-btn {
+  width: 100%;
+  height: 42px;
+  border-radius: 25px;
+}
+
+.skel-lesson-row {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  background: var(--black-4);
+  border: 1px solid var(--border-2);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+}
+
+.skel-lesson-thumb {
+  width: 74px;
+  height: 52px;
+  flex-shrink: 0;
+  border-radius: 10px;
+}
+
+.skel-lesson-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.skel-lesson-title {
+  width: 62%;
+  height: 15px;
+  margin-bottom: 10px;
+}
+
+.skel-lesson-meta {
+  width: 42%;
+  height: 11px;
+}
+
+/* شيمر أثناء تحميل صور الثمبنيل (كورسات ودروس) */
+.thumb-loading {
+  position: relative;
+  background: var(--black-4);
+}
+
+.thumb-loading::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 215, 0, 0.09), transparent);
+  animation: skeletonShimmer 1.6s ease-in-out infinite;
+}
+
+.thumb-loading img {
+  opacity: 0;
+}
+
+.thumb-loaded img {
+  opacity: 1;
+  transition: opacity 0.35s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skel::after,
+  .thumb-loading::after {
+    animation: none;
+  }
+}

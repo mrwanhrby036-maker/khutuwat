@@ -788,6 +788,8 @@ function paintLessons(idx) {
 }
 
 
+// 3) شاشة تشغيل الدرس — بتعرض الشاشة فورًا بحالة تحميل، وبعدين تجيب رابط الفيديو
+// من السيرفر (مش من Firestore مباشرة، لأن الـ rules بتمنع قراءته من العميل تمامًا)
 // 3) شاشة تشغيل الدرس
 function openLesson(ci, vi) {
   const c = COURSES[ci];
@@ -1201,7 +1203,8 @@ async function handleLogin() {
   const btn = document.getElementById("loginSubmitBtn2");
   if (btn) {
     btn.disabled = true;
-    btn.textContent = "جاري الدخول...";
+    btn.innerHTML =
+      'جاري الدخول<span class="loading-dots" aria-hidden="true"><span></span><span></span><span></span></span>';
   }
   freshLogin = true; // لازم تتحدد قبل النداء لأن onAuthStateChanged ممكن يشتغل قبل رجوع الـ await
   try {

@@ -42,6 +42,7 @@ body {
   color: var(--white);
   overflow-x: hidden;
   line-height: 1.6;
+  position: relative;
 }
 
 /* ===== عناصر عامة ===== */
@@ -237,7 +238,7 @@ ul {
   position: relative;
   overflow: hidden;
   gap: 40px;
-  background: var(--black);
+  background: rgba(0, 0, 0, 0.9);
   flex-wrap: wrap;
 }
 
@@ -316,20 +317,20 @@ ul {
 }
 
 .hero-image {
-  flex: 0 0 400px;
+  flex: 0 0 460px;
   position: relative;
-  height: 400px;
+  height: 460px;
   z-index: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   width: 100%;
-  max-width: 400px;
+  max-width: 460px;
 }
 
 .hero-circle {
-  width: 280px;
-  height: 280px;
+  width: 360px;
+  height: 360px;
   border-radius: 50%;
   border: 2px solid var(--border);
   background: radial-gradient(circle, var(--black-4), var(--black));
@@ -352,11 +353,12 @@ ul {
 /* ===== الأقسام ===== */
 .section {
   padding: 90px 0;
-  background: var(--black);
+  background: rgba(0, 0, 0, 0.9);
+  position: relative;
 }
 
 .section-dark {
-  background: var(--black-2);
+  background: rgba(10, 10, 10, 0.9);
 }
 
 .section-head {
@@ -634,9 +636,10 @@ ul {
 
 /* ===== تذييل الصفحة ===== */
 footer {
-  background: var(--black-2);
+  background: rgba(10, 10, 10, 0.9);
   border-top: 1px solid var(--border);
   padding: 50px 0 30px;
+  position: relative;
 }
 
 .footer-simple {
@@ -1163,13 +1166,13 @@ footer {
   }
 
   .hero-image {
-    width: 260px;
-    height: 260px;
+    width: 340px;
+    height: 340px;
   }
 
   .hero-circle {
-    width: 200px;
-    height: 200px;
+    width: 280px;
+    height: 280px;
   }
 
   .section-title {
@@ -1201,13 +1204,13 @@ footer {
   }
 
   .hero-image {
-    width: 220px;
-    height: 220px;
+    width: 300px;
+    height: 300px;
   }
 
   .hero-circle {
-    width: 180px;
-    height: 180px;
+    width: 250px;
+    height: 250px;
   }
 
   .nav-link {
@@ -1248,15 +1251,15 @@ footer {
   }
 
   .hero-circle {
-    width: 150px;
+    width: 200px;
 
-    height: 150px;
+    height: 200px;
   }
 
   .hero-image {
-    width: 180px;
+    width: 230px;
 
-    height: 180px;
+    height: 230px;
   }
 
   .section {
@@ -1292,15 +1295,15 @@ footer {
   }
 
   .hero-circle {
-    width: 120px;
+    width: 170px;
 
-    height: 120px;
+    height: 170px;
   }
 
   .hero-image {
-    width: 150px;
+    width: 200px;
 
-    height: 150px;
+    height: 200px;
   }
 
   #navbar {
@@ -2013,6 +2016,83 @@ body.revealed .hero-image {
 #courseArea.open .lesson-row:nth-child(5) { animation-delay: 0.43s; }
 #courseArea.open .lesson-row:nth-child(6) { animation-delay: 0.5s; }
 
+/* ===== خلفية ثلاثية الأبعاد ديكورية لكل الصفحة (خطوات/كتاب/تخرج) ===== */
+#bgShapes3D {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.bg-shape {
+  position: absolute;
+  perspective: 800px;
+  animation: bgShapeFloat 22s ease-in-out infinite;
+}
+
+.bg-shape-inner {
+  width: 100%;
+  height: 100%;
+  color: var(--gold);
+  opacity: 0.4;
+  transform-style: preserve-3d;
+  animation: bgShapeSpin 26s linear infinite;
+  filter: drop-shadow(0 0 22px rgba(255, 215, 0, 0.5));
+}
+
+.bg-shape-inner svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+@keyframes bgShapeFloat {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(18px, -34px);
+  }
+}
+
+@keyframes bgShapeSpin {
+  from {
+    transform: rotateY(0deg) rotateX(18deg);
+  }
+  to {
+    transform: rotateY(360deg) rotateX(18deg);
+  }
+}
+
+.bg-shape-1 { width: 160px; height: 160px; top: 8%; left: 5%; animation-duration: 24s; }
+.bg-shape-2 { width: 120px; height: 120px; top: 58%; left: 84%; animation-duration: 29s; animation-delay: -8s; }
+.bg-shape-3 { width: 110px; height: 110px; top: 34%; left: 46%; animation-duration: 19s; animation-delay: -3s; }
+.bg-shape-4 { width: 140px; height: 140px; top: 78%; left: 10%; animation-duration: 33s; animation-delay: -12s; }
+.bg-shape-5 { width: 100px; height: 100px; top: 16%; left: 75%; animation-duration: 26s; animation-delay: -5s; }
+
+.bg-shape-1 .bg-shape-inner { animation-duration: 25s; }
+.bg-shape-2 .bg-shape-inner { animation-duration: 32s; animation-delay: -6s; }
+.bg-shape-3 .bg-shape-inner { animation-duration: 21s; animation-delay: -11s; }
+.bg-shape-4 .bg-shape-inner { animation-duration: 36s; animation-delay: -4s; }
+.bg-shape-5 .bg-shape-inner { animation-duration: 28s; animation-delay: -15s; }
+
+/* عدد أقل من الأشكال على الموبايل يحافظ على الأداء */
+@media (max-width: 600px) {
+  .bg-shape-3,
+  .bg-shape-5 {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bg-shape,
+  .bg-shape-inner {
+    animation: none;
+  }
+}
+
 /* ===== سكيلتون التحميل (Skeleton Loading) ===== */
 @keyframes skeletonShimmer {
   100% {
@@ -2149,5 +2229,56 @@ body.revealed .hero-image {
   .skel::after,
   .thumb-loading::after {
     animation: none;
+  }
+}
+
+/* ===== نقط "جاري الدخول..." المتحركة ===== */
+.loading-dots {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 3px;
+  margin-inline-start: 5px;
+  height: 1em;
+  vertical-align: -0.05em;
+}
+
+.loading-dots span {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.35;
+  animation: loadingDotBounce 1.1s infinite ease-in-out both;
+}
+
+.loading-dots span:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.loading-dots span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.loading-dots span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes loadingDotBounce {
+  0%,
+  80%,
+  100% {
+    opacity: 0.35;
+    transform: translateY(0) scale(0.85);
+  }
+  40% {
+    opacity: 1;
+    transform: translateY(-4px) scale(1.15);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading-dots span {
+    animation: none;
+    opacity: 0.8;
   }
 }

@@ -159,7 +159,7 @@ let COURSES = [];
 let coursesLoaded = false; // false = لسه بيتحمل من Firestore (نعرض سكيلتون)، true = وصل الرد (فاضي أو فيه كورسات)
 // ===== المتغيرات العامة =====
 let currentUser = null;
-let sections = ["home", "courses", "features"];
+let sections = ["home", "courses", "freeLecture", "features"];
 let currentSectionIndex = 0;
 let pendingCourseId = null;
 let freshLogin = false; // true فقط لو المستخدم ضغط "دخول" الآن (مش استعادة جلسة قديمة)
@@ -1148,6 +1148,44 @@ document
 
 document.getElementById("notifyMeBtn")?.addEventListener("click", () => {
   showToast("info", "📢 قريباً!", "سيتم إضافة كورسات جديدة قريباً.. تابعونا!");
+});
+
+// ===== المحاضرة المجانية: قسم ثابت بالكامل (بدون Firestore) =====
+// الفيديو يفضل مقفول لحد ما المستخدم يدوس زرار تحميل الـ PDF — بعدها
+// بيتفعل ويفضل متفعل في زياراته الجاية (localStorage) على نفس المتصفح.
+const FREE_LECTURE_YOUTUBE_URL = "https://youtu.be/-W1PwFo8E9M";
+const FREE_LECTURE_UNLOCK_KEY = "freeLecturePdfDownloaded";
+
+function unlockFreeLecture() {
+  const box = document.getElementById("freeLectureVideoBox");
+  const locked = document.getElementById("freeLectureLocked");
+  if (!box || !locked) return;
+  if (!box.querySelector("iframe")) {
+    const embed = toEmbedUrl(FREE_LECTURE_YOUTUBE_URL);
+    if (embed) {
+      box.innerHTML = `<iframe src="${attr(embed)}" title="محاضرة مجانية" referrerpolicy="origin" sandbox="allow-scripts allow-same-origin allow-presentation" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen></iframe>`;
+    }
+  }
+  locked.classList.add("unlocked");
+}
+
+document.getElementById("downloadPdfBtn")?.addEventListener("click", () => {
+  try {
+    localStorage.setItem(FREE_LECTURE_UNLOCK_KEY, "1");
+  } catch (e) {
+    console.error("تعذر حفظ حالة فتح المحاضرة:", e);
+  }
+  unlockFreeLecture();
+});
+
+window.addEventListener("load", () => {
+  let alreadyUnlocked = false;
+  try {
+    alreadyUnlocked = localStorage.getItem(FREE_LECTURE_UNLOCK_KEY) === "1";
+  } catch (e) {
+    alreadyUnlocked = false;
+  }
+  if (alreadyUnlocked) unlockFreeLecture();
 });
 
 // 🧪 زرار المعاينة التجريبية المؤقت — هيتشال قبل النشر

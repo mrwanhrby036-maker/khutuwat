@@ -2282,3 +2282,122 @@ body.revealed .hero-image {
     opacity: 0.8;
   }
 }
+
+/* ===== قسم المحاضرة المجانية ===== */
+.free-lecture-card {
+  max-width: 720px;
+  margin: 0 auto;
+  background: var(--black-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 30px;
+}
+
+.free-lecture-pdf {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  background: rgba(255, 215, 0, 0.06);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 18px;
+  margin-bottom: 22px;
+}
+
+.free-lecture-pdf-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  background: rgba(255, 215, 0, 0.1);
+  border: 1px solid var(--border);
+  color: var(--gold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.free-lecture-pdf-info {
+  flex: 1;
+  min-width: 160px;
+}
+
+.free-lecture-pdf-info h3 {
+  font-size: 16px;
+  color: var(--white);
+  margin-bottom: 4px;
+}
+
+.free-lecture-pdf-info p {
+  font-size: 13.5px;
+  color: var(--gray);
+}
+
+.free-lecture-video-wrap {
+  position: relative;
+  width: 100%;
+  padding-top: 56.25%;
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: #000;
+  border: 1px solid var(--border-2);
+}
+
+.free-lecture-video-wrap .ca-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding-top: 0;
+}
+
+.free-lecture-video-wrap .ca-video iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.free-lecture-locked {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  text-align: center;
+  padding: 20px;
+  color: var(--gray-light);
+  background: radial-gradient(circle, var(--black-4), var(--black));
+  transition: opacity 0.35s ease, visibility 0.35s ease;
+}
+
+.free-lecture-locked svg {
+  color: var(--gold);
+}
+
+.free-lecture-locked.unlocked {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+@media (max-width: 600px) {
+  .free-lecture-card {
+    padding: 20px;
+  }
+
+  .free-lecture-pdf {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .free-lecture-pdf .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}

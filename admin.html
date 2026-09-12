@@ -1,0 +1,1055 @@
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>لوحة الإدارة</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap");
+    :root {
+      --gold: #ffd700;
+      --gold-dark: #ffa500;
+      --black: #000;
+      --black-2: #0a0a0a;
+      --black-3: #111;
+      --black-4: #1a1a1a;
+      --gray: #888;
+      --gray-light: #aaa;
+      --border: rgba(255, 215, 0, 0.15);
+      --radius: 12px;
+      --radius-lg: 20px;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: "Tajawal", sans-serif;
+      background: linear-gradient(180deg, var(--black-2), var(--black));
+      min-height: 100vh;
+      color: #fff;
+      padding: 30px 15px;
+    }
+    .wrap { max-width: 900px; margin: 0 auto; }
+    .head {
+      text-align: center;
+      margin-bottom: 28px;
+    }
+    .head h1 { color: var(--gold); font-size: 28px; margin-bottom: 6px; }
+    .head p { color: var(--gray); font-size: 14px; }
+    .card {
+      background: var(--black-3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 25px;
+      margin-bottom: 22px;
+    }
+    .card h2 {
+      color: var(--gold);
+      font-size: 18px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    label { display: block; margin-bottom: 12px; font-size: 13px; color: var(--gray-light); }
+    input, textarea {
+      width: 100%;
+      margin-top: 5px;
+      padding: 11px 13px;
+      background: var(--black-4);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: #fff;
+      font-family: inherit;
+      font-size: 14px;
+      resize: vertical;
+    }
+    input:focus, textarea:focus { outline: none; border-color: var(--gold); }
+    .row { display: flex; gap: 12px; flex-wrap: wrap; }
+    .row > label { flex: 1; min-width: 140px; }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 11px 22px;
+      border-radius: 50px;
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 700;
+      transition: 0.2s;
+    }
+    .btn-gold { background: linear-gradient(135deg, var(--gold), var(--gold-dark)); color: var(--black); }
+    .btn-gold:hover { transform: translateY(-2px); }
+    .btn-outline { background: none; border: 1px solid var(--border); color: var(--gray-light); }
+    .btn-outline:hover { color: var(--gold); border-color: var(--gold); }
+    .btn-red { background: none; border: 1px solid rgba(255, 100, 100, 0.4); color: #ff6464; padding: 7px 14px; font-size: 12.5px; }
+    .btn-red:hover { background: #ff6464; color: #fff; }
+    .btn-sm { padding: 7px 14px; font-size: 12.5px; }
+    .item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--black-4);
+      border: 1px solid var(--border-2);
+      border-radius: var(--radius);
+      padding: 13px 15px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+    .item .info { flex: 1; min-width: 200px; }
+    .item .info strong { color: var(--gold); display: block; margin-bottom: 3px; }
+    .item .info small { color: var(--gray); font-size: 12px; display: block; word-break: break-all; }
+    .actions { display: flex; gap: 7px; }
+    .msg {
+      display: none;
+      padding: 12px 15px;
+      border-radius: var(--radius);
+      margin-bottom: 15px;
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .msg.ok { display: block; background: rgba(0, 200, 120, 0.12); color: #35d99a; border: 1px solid rgba(53, 217, 154, 0.3); }
+    .msg.err { display: block; background: rgba(255, 100, 100, 0.1); color: #ff6464; border: 1px solid rgba(255, 100, 100, 0.3); }
+    .hidden { display: none !important; }
+    .topbar { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+    .topbar .who { color: var(--gray); font-size: 13px; }
+    .topbar .who b { color: var(--gold); }
+    .login-box { max-width: 400px; margin: 60px auto 0; }
+    .hint {
+      background: rgba(255, 215, 0, 0.06);
+      border: 1px dashed var(--border);
+      border-radius: var(--radius);
+      padding: 13px 15px;
+      color: var(--gray-light);
+      font-size: 13px;
+      line-height: 1.8;
+      margin-bottom: 22px;
+    }
+    .link-btn { color: var(--gold); cursor: pointer; text-decoration: underline; }
+    .sel { border-color: var(--gold) !important; }
+    .thumb { width: 56px; height: 40px; object-fit: cover; border-radius: 8px; flex-shrink: 0; border: 1px solid var(--border); background: var(--black-3); }
+    .thumb-empty { width: 56px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; border-radius: 8px; background: var(--black-3); }
+
+    .svg-icon {
+      width: 1.15em;
+      height: 1.15em;
+      display: inline-block;
+      vertical-align: -0.18em;
+      color: currentColor;
+      flex-shrink: 0;
+    }
+    .thumb-empty .svg-icon {
+      width: 24px;
+      height: 24px;
+      color: var(--gold);
+    }
+    .item small .svg-icon {
+      width: 1em;
+      height: 1em;
+      color: var(--gold);
+    }
+    .course-banner {
+      background: linear-gradient(90deg, rgba(255, 215, 0, 0.18), rgba(255, 165, 0, 0.12));
+      border: 1px solid var(--border);
+      border-right: 4px solid var(--gold);
+      border-radius: var(--radius);
+      padding: 11px 15px;
+      margin-bottom: 16px;
+      color: var(--gold);
+      font-weight: 700;
+      font-size: 14px;
+    }
+    #panelMsg.msg.ok,
+    #panelMsg.msg.err {
+      position: fixed;
+      top: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 9999;
+      min-width: 320px;
+      max-width: 90vw;
+      text-align: center;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+      animation: msgIn 0.3s ease;
+    }
+    @keyframes msgIn {
+      from { opacity: 0; transform: translateX(-50%) translateY(-12px); }
+      to { opacity: 1; transform: translateX(-50%) translateY(0); }
+    }
+
+    .image-url-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-top: 5px;
+    }
+    .image-url-row input { margin-top: 0; }
+    .image-edit-btn {
+      flex: 0 0 auto;
+      white-space: nowrap;
+      padding: 10px 14px;
+      border-radius: 12px;
+    }
+    .image-crop-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.78);
+      padding: 18px;
+    }
+    .image-crop-modal.show { display: flex; }
+    .image-crop-box {
+      width: min(760px, 96vw);
+      background: var(--black-3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 18px;
+      box-shadow: 0 18px 60px rgba(0, 0, 0, 0.65);
+    }
+    .image-crop-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .image-crop-head h2 {
+      margin: 0;
+      color: var(--gold);
+      font-size: 18px;
+    }
+    .image-preview-frame {
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      overflow: hidden;
+      border-radius: var(--radius);
+      background: #050505;
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .image-preview-frame img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transform-origin: center center;
+    }
+    .image-crop-controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin: 14px 0;
+    }
+    .image-crop-controls label { margin: 0; }
+    .image-crop-controls input[type="range"] {
+      padding: 0;
+      accent-color: var(--gold);
+    }
+    .image-crop-actions {
+      display: flex;
+      justify-content: flex-start;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+  </style>
+</head>
+<body>
+  <div class="wrap">
+
+    <!-- تسجيل الدخول -->
+    <div class="card login-box" id="loginBox">
+      <div class="head">
+        <h1>🔐 لوحة الإدارة</h1>
+        <p>صفحة سرية — دخول الإدارة فقط</p>
+      </div>
+      <div class="msg" id="loginMsg"></div>
+      <label>البريد الإلكتروني
+        <input type="email" id="admEmail" autocomplete="username">
+      </label>
+      <label>كلمة المرور
+        <input type="password" id="admPass" autocomplete="current-password">
+      </label>
+      <button class="btn btn-gold" id="loginBtn" style="width:100%; justify-content:center;">
+        <i class="fas fa-right-to-bracket"></i> دخول
+      </button>
+    </div>
+
+    <!-- غير مصرح -->
+    <div class="card hidden" id="deniedBox" style="text-align:center;">
+      <h2 style="justify-content:center;">⛔ غير مصرح</h2>
+      <p style="color:var(--gray); margin-bottom:15px;">الحساب ده مالوش صلاحية إدارة.</p>
+      <button class="btn btn-outline" id="deniedOutBtn">خروج</button>
+    </div>
+
+    <!-- اللوحة -->
+    <div id="panel" class="hidden">
+      <div class="topbar">
+        <div class="head" style="text-align:right; margin:0;">
+          <h1 style="font-size:24px;">👑 لوحة الإدارة</h1>
+          <div class="who">مسجّل: <b id="whoEmail"></b></div>
+        </div>
+        <button class="btn btn-outline" id="logoutBtn">
+          <i class="fas fa-sign-out-alt"></i> خروج
+        </button>
+      </div>
+
+      <div class="hint">
+        💡 من هنا بتضيف الكورسات والفيديوهات — وبتظهر فوراً للمسجلين في الموقع.<br>
+        📌 الطلبة بيدخلوا ببياناتهم من صفحة الموقع العادية (إنت بتضيف حساباتهم من Firebase Console ← Authentication ← Users).
+      </div>
+
+      <div class="msg" id="panelMsg"></div>
+
+      <div class="card">
+        <h2><i class="fas fa-bolt"></i> بداية سريعة</h2>
+        <p style="color:var(--gray); font-size:13.5px; margin-bottom:12px;">
+          لو أول مرة: استورد محتوى تجريبي جاهز لتجربة النظام كامل، وبعدين عدّله براحتك.
+        </p>
+        <button class="btn btn-outline" id="seedBtn">
+          <i class="fas fa-download"></i> استيراد محتوى تجريبي
+        </button>
+      </div>
+
+      <!-- نموذج الكورس -->
+      <div class="card">
+        <h2 id="courseFormTitle"><i class="fas fa-book"></i> إضافة كورس جديد</h2>
+        <div class="row">
+          <label style="flex:0 0 110px;">الترتيب
+            <input type="number" id="cOrder" value="1">
+          </label>
+          <label>اسم الكورس *
+            <input type="text" id="cTitle">
+          </label>
+        </div>
+        <label>صورة الكورس (لينك صورة) — اختياري
+          <div class="image-url-row">
+            <input type="url" id="cImage" placeholder="https://..." dir="ltr">
+            <button type="button" class="btn btn-outline image-edit-btn" data-image-editor="course">تعديل الصورة</button>
+          </div>
+          <input type="hidden" id="cImagePositionX" value="50">
+          <input type="hidden" id="cImagePositionY" value="50">
+          <input type="hidden" id="cImageZoom" value="100">
+        </label>
+        <label>وصف قصير (يظهر في الصفحة الرئيسية)
+          <input type="text" id="cShort">
+        </label>
+        <label>وصف تفصيلي (يظهر داخل صفحة الكورس)
+          <textarea id="cDesc" rows="3"></textarea>
+        </label>
+        <div class="actions" style="margin-top:5px;">
+          <button class="btn btn-gold" id="saveCourseBtn">
+            <i class="fas fa-floppy-disk"></i> حفظ الكورس
+          </button>
+          <button class="btn btn-outline hidden" id="cancelCourseBtn">إلغاء التعديل</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2><i class="fas fa-list"></i> الكورسات الحالية</h2>
+        <div id="coursesList"><p style="color:var(--gray); font-size:13px;">⏳ جاري التحميل...</p></div>
+      </div>
+
+      <!-- فيديوهات الكورس المحدد -->
+      <div class="card hidden" id="videosPanel">
+        <h2 id="videosTitle"><i class="fas fa-video"></i> الدروس</h2>
+        <div class="course-banner" id="videosCourseBanner" style="display:none;"></div>
+
+        <div class="row">
+          <label>عنوان الدرس *
+            <input type="text" id="vTitle">
+          </label>
+          <label>المدرّس
+            <input type="text" id="vInstructor">
+          </label>
+        </div>
+        <div class="row">
+          <label>المدة (مثال: 9 دقائق)
+            <input type="text" id="vDuration">
+          </label>
+          <label style="flex:0 0 110px;">الترتيب
+            <input type="number" id="vOrder" value="1">
+          </label>
+        </div>
+        <label>صورة الدرس (لينك صورة) — اختياري
+          <div class="image-url-row">
+            <input type="url" id="vImage" placeholder="https://..." dir="ltr">
+            <button type="button" class="btn btn-outline image-edit-btn" data-image-editor="video">تعديل الصورة</button>
+          </div>
+          <input type="hidden" id="vImagePositionX" value="50">
+          <input type="hidden" id="vImagePositionY" value="50">
+          <input type="hidden" id="vImageZoom" value="100">
+        </label>
+        <label>لينك الفيديو * (Gumlet / يوتيوب / جوجل درايف)
+          <input type="url" id="vUrl" placeholder="https://play.gumlet.io/embed/..." dir="ltr">
+        </label>
+        <div class="actions" style="margin-top:5px; margin-bottom:18px;">
+          <button class="btn btn-gold" id="saveVideoBtn">
+            <i class="fas fa-floppy-disk"></i> حفظ الدرس
+          </button>
+          <button class="btn btn-outline hidden" id="cancelVideoBtn">إلغاء التعديل</button>
+        </div>
+
+        <div id="videosList"><p style="color:var(--gray); font-size:13px;">اختر كورس من فوق لعرض دروسه</p></div>
+      </div>
+    </div>
+
+  </div>
+
+
+  <div class="image-crop-modal" id="imageCropModal" aria-hidden="true">
+    <div class="image-crop-box" role="dialog" aria-modal="true" aria-labelledby="imageCropTitle">
+      <div class="image-crop-head">
+        <h2 id="imageCropTitle">تعديل عرض الصورة</h2>
+        <button type="button" class="btn btn-outline btn-sm" id="imageCropCloseBtn">إغلاق</button>
+      </div>
+      <div class="image-preview-frame">
+        <img id="imageCropPreview" alt="معاينة الصورة">
+      </div>
+      <div class="image-crop-controls">
+        <label>يمين / شمال
+          <input type="range" id="imageCropX" min="0" max="100" value="50">
+        </label>
+        <label>فوق / تحت
+          <input type="range" id="imageCropY" min="0" max="100" value="50">
+        </label>
+        <label>تكبير الصورة
+          <input type="range" id="imageCropZoom" min="100" max="220" value="100">
+        </label>
+      </div>
+      <div class="image-crop-actions">
+        <button type="button" class="btn btn-gold" id="imageCropApplyBtn">تطبيق التعديل</button>
+        <button type="button" class="btn btn-outline" id="imageCropResetBtn">إعادة ضبط</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import {
+      getAuth,
+      signInWithEmailAndPassword,
+      signOut,
+      onAuthStateChanged
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import {
+      getFirestore,
+      collection,
+      getDocs,
+      getDoc,
+      addDoc,
+      doc,
+      updateDoc,
+      deleteDoc,
+      query,
+      orderBy
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    // ===== إعدادات Firebase (نفس المشروع) =====
+    const firebaseConfig = {
+      apiKey: "AIzaSyD1QN_bG2U_eNJ-lH5xlCZK4qjxvbvJRU4",
+      authDomain: "chatapp-e8283.firebaseapp.com",
+      projectId: "chatapp-e8283",
+      storageBucket: "chatapp-e8283.firebasestorage.app",
+      messagingSenderId: "456910182070",
+      appId: "1:456910182070:web:2976378ec5e206a3867817"
+    };
+    // صلاحية الأدمن تعتمد على Firestore:
+    // admins/{uid} = { active: true }
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+
+    // ===== Security helpers: لا نثق بأي مدخلات من المتصفح =====
+    const MAX_TEXT = {
+      title: 120,
+      short: 220,
+      description: 1200,
+      instructor: 90,
+      duration: 40
+    };
+    const DOC_ID_RE = /^[A-Za-z0-9_-]{1,160}$/;
+    const YOUTUBE_ID_RE = /^[A-Za-z0-9_-]{11}$/;
+    const DRIVE_ID_RE = /^[A-Za-z0-9_-]{10,120}$/;
+    const GUMLET_ID_RE = /^[A-Za-z0-9_-]{8,160}$/;
+    // الصور والفيديوهات يمكن أن تكون من مصادر خارجية، لكن HTTPS فقط.
+    // إن أردت Allowlist صارمة لاحقًا يمكن تقييدها هنا وفي Firestore Rules.
+    const ALLOWED_IMAGE_HOSTS = null;
+    let adminVerified = false;
+
+    function cleanText(value, max = 200) {
+      return String(value ?? "").replace(/[\u0000-\u001F\u007F]/g, "").trim().slice(0, max);
+    }
+    function cleanOrder(value) {
+      const n = Number(value);
+      if (!Number.isInteger(n) || n < 0 || n > 9999) return 1;
+      return n;
+    }
+    function cleanPercent(value) {
+      const n = Number(value);
+      if (!Number.isFinite(n)) return 50;
+      return Math.min(100, Math.max(0, Math.round(n)));
+    }
+    function cleanZoom(value) {
+      const n = Number(value);
+      if (!Number.isFinite(n)) return 100;
+      return Math.min(220, Math.max(100, Math.round(n)));
+    }
+    function imageStyleAttr(imageRecord) {
+      const x = cleanPercent(imageRecord?.imagePositionX);
+      const y = cleanPercent(imageRecord?.imagePositionY);
+      const zoom = cleanZoom(imageRecord?.imageZoom);
+      return `object-position:${x}% ${y}%; transform:scale(${zoom / 100});`;
+    }
+    function isSafeDocId(id) {
+      return DOC_ID_RE.test(String(id ?? ""));
+    }
+    function safeUrl(value, { hosts = null, allowPath = () => true } = {}) {
+      const raw = String(value ?? "").trim();
+      if (!raw || raw.length > 2048) return "";
+      try {
+        const u = new URL(raw);
+        const host = u.hostname.toLowerCase().replace(/^www\./, "");
+        if (u.protocol !== "https:" || u.username || u.password) return "";
+        if (hosts && !hosts.has(host) && ![...hosts].some((h) => host.endsWith("." + h))) return "";
+        if (!allowPath(u, host)) return "";
+        return u.toString();
+      } catch {
+        return "";
+      }
+    }
+    function cleanImageUrl(value) {
+      const raw = String(value ?? "").trim();
+      if (!raw) return "";
+      return safeUrl(raw, { hosts: ALLOWED_IMAGE_HOSTS });
+    }
+    function cleanVideoUrl(value) {
+      const raw = String(value ?? "").trim();
+      if (!raw) return "";
+      return safeUrl(raw);
+    }
+    function requireAdminUi() {
+      if (!adminVerified) throw new Error("NOT_ADMIN");
+    }
+    function validateCourseForm() {
+      const title = cleanText($("cTitle").value, MAX_TEXT.title);
+      if (!title) throw new Error("TITLE_REQUIRED");
+      return {
+        imageUrl: cleanImageUrl($("cImage").value),
+        imagePositionX: cleanPercent($("cImagePositionX").value),
+        imagePositionY: cleanPercent($("cImagePositionY").value),
+        imageZoom: cleanZoom($("cImageZoom").value),
+        order: cleanOrder($("cOrder").value),
+        title,
+        short: cleanText($("cShort").value, MAX_TEXT.short),
+        description: cleanText($("cDesc").value, MAX_TEXT.description)
+      };
+    }
+    function validateVideoForm() {
+      const title = cleanText($("vTitle").value, MAX_TEXT.title);
+      const videoUrl = cleanVideoUrl($("vUrl").value);
+      if (!title || !videoUrl) throw new Error("VIDEO_REQUIRED");
+      return {
+        title,
+        instructor: cleanText($("vInstructor").value, MAX_TEXT.instructor),
+        duration: cleanText($("vDuration").value, MAX_TEXT.duration),
+        order: cleanOrder($("vOrder").value),
+        videoUrl,
+        imageUrl: cleanImageUrl($("vImage").value),
+        imagePositionX: cleanPercent($("vImagePositionX").value),
+        imagePositionY: cleanPercent($("vImagePositionY").value),
+        imageZoom: cleanZoom($("vImageZoom").value)
+      };
+    }
+
+    const $ = (id) => document.getElementById(id);
+    let editingCourseId = null;
+    let editingVideoId = null;
+    let selectedCourseId = null;
+    let coursesCache = [];
+
+
+function svgIcon(name, className = "") {
+  const classes = `svg-icon ${className}`.trim();
+  const common = `class="${classes}" viewBox="0 0 24 24" aria-hidden="true" focusable="false"`;
+  const icons = {
+    book: `<svg ${common}><path d="M5 4.5C5 3.7 5.7 3 6.5 3H20v15.5H7.2C6 18.5 5 19.5 5 20.7V4.5Z" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M5 20.7C5 19.5 6 18.5 7.2 18.5H20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M8.5 7h7M8.5 10.5h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`,
+    lock: `<svg ${common}><rect x="5" y="10" width="14" height="10" rx="2.4" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8 10V8a4 4 0 0 1 8 0v2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="15" r="1.3" fill="currentColor"/></svg>`,
+    play: `<svg ${common}><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M10 8.8v6.4c0 .6.7 1 1.2.7l5-3.2c.5-.3.5-1.1 0-1.4l-5-3.2c-.5-.3-1.2.1-1.2.7Z" fill="currentColor"/></svg>`,
+    video: `<svg ${common}><rect x="4" y="6.5" width="12" height="11" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M16 10l4-2.4v8.8L16 14v-4Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>`,
+    user: `<svg ${common}><circle cx="12" cy="8" r="3.4" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M5.5 20a6.5 6.5 0 0 1 13 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`,
+    clock: `<svg ${common}><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 7.5V12l3 2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+    graduation: `<svg ${common}><path d="M3 8l9-4 9 4-9 4-9-4Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M7 10.2V15c0 1.5 2.2 3 5 3s5-1.5 5-3v-4.8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M21 8v5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`,
+    star: `<svg ${common}><path d="M12 3.8l2.3 4.7 5.2.8-3.8 3.7.9 5.2-4.6-2.4-4.6 2.4.9-5.2-3.8-3.7 5.2-.8L12 3.8Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>`
+  };
+  return icons[name] || "";
+}
+
+    function showMsg(id, text, ok) {
+      const el = $(id);
+      el.className = "msg " + (ok ? "ok" : "err");
+      el.textContent = text;
+      if (ok) setTimeout(() => (el.className = "msg"), 3500);
+    }
+
+    // ===== الحالة =====
+    onAuthStateChanged(auth, async (u) => {
+      adminVerified = false;
+      let isAdmin = false;
+
+      if (u) {
+        try {
+          // مصدر الصلاحيات الوحيد الآن: Firestore admins/{uid}
+          const adminDocSnap = await getDoc(doc(db, "admins", u.uid));
+          isAdmin = adminDocSnap.exists() && adminDocSnap.data()?.active === true;
+          adminVerified = isAdmin;
+        } catch (error) {
+          console.error("Admin permission check failed", error?.code || error?.message || error);
+          isAdmin = false;
+        }
+      }
+
+      $("loginBox").classList.toggle("hidden", !!u);
+      $("deniedBox").classList.toggle("hidden", isAdmin || !u);
+      $("panel").classList.toggle("hidden", !isAdmin);
+
+      if (isAdmin) {
+        $("whoEmail").textContent = u.email || "";
+        loadCourses();
+      }
+    });
+
+    $("loginBtn").addEventListener("click", async () => {
+      const e = $("admEmail").value.trim();
+      const p = $("admPass").value;
+      if (!e || !p || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e) || e.length > 254 || p.length > 1024) {
+        showMsg("loginMsg", "⚠️ بيانات الدخول غير صحيحة", false);
+        return;
+      }
+      const lockUntil = Number(sessionStorage.getItem("adminLoginLockUntil") || 0);
+      if (Date.now() < lockUntil) {
+        showMsg("loginMsg", "⚠️ انتظر قليلاً قبل المحاولة مرة أخرى", false);
+        return;
+      }
+      try {
+        await signInWithEmailAndPassword(auth, e, p);
+      } catch (err) {
+        if (err?.code === "auth/too-many-requests") {
+          sessionStorage.setItem("adminLoginLockUntil", String(Date.now() + 60_000));
+        }
+        showMsg("loginMsg", "❌ البيانات غير صحيحة", false);
+      }
+    });
+    $("admPass").addEventListener("keydown", (ev) => {
+      if (ev.key === "Enter") $("loginBtn").click();
+    });
+    $("logoutBtn").addEventListener("click", () => signOut(auth));
+    $("deniedOutBtn").addEventListener("click", () => signOut(auth));
+
+    // ===== الكورسات =====
+    async function loadCourses() {
+      requireAdminUi();
+      const list = $("coursesList");
+      try {
+        const snap = await getDocs(query(collection(db, "courses"), orderBy("order")));
+        coursesCache = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        if (!coursesCache.length) {
+          list.innerHTML = '<p style="color:var(--gray); font-size:13px;">📭 لا توجد كورسات — أضف كورس من النموذج فوق أو استورد المحتوى التجريبي</p>';
+          return;
+        }
+        list.innerHTML = coursesCache
+          .map(
+            (c) => `
+          <div class="item ${c.id === selectedCourseId ? "sel" : ""}">
+            ${cleanImageUrl(c.imageUrl) ? `<img class="thumb" src="${esc(cleanImageUrl(c.imageUrl))}" alt="" style="${esc(imageStyleAttr(c))}" referrerpolicy="no-referrer">` : `<span class="thumb-empty">${svgIcon("book")}</span>`}
+            <div class="info">
+              <strong>${esc(c.title)}</strong>
+              <small>ترتيب: ${c.order ?? 1} • فيديوهات: ${c.videoCount ?? 0}</small>
+            </div>
+            <div class="actions">
+              <button class="btn btn-outline btn-sm" data-videos="${esc(c.id)}"><i class="fas fa-video"></i> الدروس</button>
+              <button class="btn btn-outline btn-sm" data-edit="${esc(c.id)}"><i class="fas fa-pen"></i> تعديل</button>
+              <button class="btn btn-red" data-del="${esc(c.id)}"><i class="fas fa-trash"></i> حذف</button>
+            </div>
+          </div>`
+          )
+          .join("");
+
+        list.querySelectorAll("[data-videos]").forEach((b) =>
+          b.addEventListener("click", () => openVideos(b.dataset.videos))
+        );
+        list.querySelectorAll("[data-edit]").forEach((b) =>
+          b.addEventListener("click", () => {
+            const c = coursesCache.find((x) => x.id === b.dataset.edit);
+            if (!c) return;
+            editingCourseId = c.id;
+            $("courseFormTitle").innerHTML = '<i class="fas fa-pen"></i> تعديل الكورس';
+            $("cImage").value = c.imageUrl || "";
+            $("cImagePositionX").value = cleanPercent(c.imagePositionX);
+            $("cImagePositionY").value = cleanPercent(c.imagePositionY);
+            $("cImageZoom").value = cleanZoom(c.imageZoom);
+            $("cOrder").value = c.order ?? 1;
+            $("cTitle").value = c.title || "";
+            $("cShort").value = c.short || "";
+            $("cDesc").value = c.description || "";
+            $("cancelCourseBtn").classList.remove("hidden");
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          })
+        );
+        list.querySelectorAll("[data-del]").forEach((b) =>
+          b.addEventListener("click", () => deleteCourse(b.dataset.del))
+        );
+      } catch (e) {
+        console.error(e);
+        list.innerHTML = '<p style="color:#ff6464; font-size:13px;">⚠️ خطأ في التحميل — راجع قواعد Firestore</p>';
+      }
+    }
+
+    function esc(t) {
+      const d = document.createElement("div");
+      d.textContent = t ?? "";
+      return d.innerHTML;
+    }
+
+    $("saveCourseBtn").addEventListener("click", async () => {
+      let data;
+      try {
+        requireAdminUi();
+        data = validateCourseForm();
+      } catch {
+        showMsg("panelMsg", "⚠️ تأكد من العنوان والروابط: روابط الصور يجب أن تكون HTTPS ومن مصادر مسموحة", false);
+        return;
+      }
+      try {
+        let newCourseId = null;
+        if (editingCourseId) {
+          if (!isSafeDocId(editingCourseId)) throw new Error("BAD_ID");
+          await updateDoc(doc(db, "courses", editingCourseId), data);
+          showMsg("panelMsg", "✅ تم تعديل الكورس بنجاح", true);
+        } else {
+          data.videoCount = 0;
+          const ref = await addDoc(collection(db, "courses"), data);
+          newCourseId = ref.id;
+          showMsg("panelMsg", "✅ تم رفع الكورس بنجاح — أضف دروسه الآن من الأسفل", true);
+        }
+        resetCourseForm();
+        await loadCourses();
+        if (newCourseId) openVideos(newCourseId);
+      } catch (e) {
+        console.error(e);
+        showMsg("panelMsg", "❌ خطأ في الحفظ — راجع قواعد Firestore", false);
+      }
+    });
+    $("cancelCourseBtn").addEventListener("click", resetCourseForm);
+
+    function resetCourseForm() {
+      editingCourseId = null;
+      $("courseFormTitle").innerHTML = '<i class="fas fa-book"></i> إضافة كورس جديد';
+      $("cImage").value = "";
+      $("cImagePositionX").value = 50;
+      $("cImagePositionY").value = 50;
+      $("cImageZoom").value = 100;
+      $("cOrder").value = (coursesCache.length + 1);
+      $("cTitle").value = "";
+      $("cShort").value = "";
+      $("cDesc").value = "";
+      $("cancelCourseBtn").classList.add("hidden");
+    }
+
+    async function deleteCourse(id) {
+      requireAdminUi();
+      if (!isSafeDocId(id)) { showMsg("panelMsg", "❌ معرف غير صالح", false); return; }
+      if (!confirm("⚠️ حذف الكورس هيحذف كل دروسه كمان.. متأكد؟")) return;
+      try {
+        const vids = await getDocs(collection(db, "courses", id, "videos"));
+        for (const videoDoc of vids.docs) {
+          await deleteDoc(doc(db, "courses", id, "videos", videoDoc.id));
+        }
+        await deleteDoc(doc(db, "courses", id));
+        if (selectedCourseId === id) {
+          selectedCourseId = null;
+          $("videosPanel").classList.add("hidden");
+        }
+        showMsg("panelMsg", "🗑️ تم حذف الكورس ودروسه", true);
+        loadCourses();
+      } catch (e) {
+        console.error(e);
+        showMsg("panelMsg", "❌ خطأ في الحذف", false);
+      }
+    }
+
+    // ===== الفيديوهات =====
+    function openVideos(courseId) {
+      requireAdminUi();
+      if (!isSafeDocId(courseId)) { showMsg("panelMsg", "❌ معرف غير صالح", false); return; }
+      selectedCourseId = courseId;
+      editingVideoId = null;
+      resetVideoForm();
+      const c = coursesCache.find((x) => x.id === courseId);
+      $("videosTitle").innerHTML = `<i class="fas fa-video"></i> دروس: ${esc(c?.title || "")}`;
+      const banner = $("videosCourseBanner");
+      banner.style.display = "block";
+      banner.innerHTML = `⚠️ الدروس اللي هتحفظها دلوقتي هتتحفظ في كورس: <b>«${esc(c?.title || "")}»</b> — تأكد إن ده الكورس الصح قبل ما تحفظ`;
+      $("videosPanel").classList.remove("hidden");
+      loadVideos();
+      $("videosPanel").scrollIntoView({ behavior: "smooth" });
+      loadCourses();
+    }
+
+
+    async function loadVideos() {
+      requireAdminUi();
+      const list = $("videosList");
+      if (!selectedCourseId || !isSafeDocId(selectedCourseId)) return;
+      try {
+        const snap = await getDocs(
+          query(collection(db, "courses", selectedCourseId, "videos"), orderBy("order"))
+        );
+        const vids = snap.docs.map((lessonDoc) => ({ id: lessonDoc.id, ...lessonDoc.data() }));
+        if (!vids.length) {
+          list.innerHTML = '<p style="color:var(--gray); font-size:13px;">📭 لا توجد دروس — أضف أول درس من النموذج فوق</p>';
+          return;
+        }
+        list.innerHTML = vids
+          .map(
+            (v, i) => `
+          <div class="item">
+            ${cleanImageUrl(v.imageUrl) ? `<img class="thumb" src="${esc(cleanImageUrl(v.imageUrl))}" alt="" style="${esc(imageStyleAttr(v))}" referrerpolicy="no-referrer">` : `<span class="thumb-empty">${svgIcon("play")}</span>`}
+            <div class="info">
+              <strong>${i + 1}. ${esc(v.title)}</strong>
+              <small>${svgIcon("user")} ${esc(v.instructor || "—")} • ${svgIcon("clock")} ${esc(v.duration || "—")}</small>
+              <small dir="ltr" style="opacity:0.7;">${esc(v.videoUrl)}</small>
+            </div>
+            <div class="actions">
+              <button class="btn btn-outline btn-sm" data-vedit="${esc(v.id)}"><i class="fas fa-pen"></i></button>
+              <button class="btn btn-red" data-vdel="${esc(v.id)}"><i class="fas fa-trash"></i></button>
+            </div>
+          </div>`
+          )
+          .join("");
+
+        list.querySelectorAll("[data-vedit]").forEach((b) =>
+          b.addEventListener("click", () => {
+            const v = vids.find((x) => x.id === b.dataset.vedit);
+            if (!v) return;
+            editingVideoId = v.id;
+            $("vTitle").value = v.title || "";
+            $("vInstructor").value = v.instructor || "";
+            $("vDuration").value = v.duration || "";
+            $("vOrder").value = v.order ?? 1;
+            $("vUrl").value = v.videoUrl || "";
+            $("vImage").value = v.imageUrl || "";
+            $("vImagePositionX").value = cleanPercent(v.imagePositionX);
+            $("vImagePositionY").value = cleanPercent(v.imagePositionY);
+            $("vImageZoom").value = cleanZoom(v.imageZoom);
+            $("cancelVideoBtn").classList.remove("hidden");
+          })
+        );
+        list.querySelectorAll("[data-vdel]").forEach((b) =>
+          b.addEventListener("click", () => deleteVideo(b.dataset.vdel))
+        );
+      } catch (e) {
+        console.error(e);
+        list.innerHTML = '<p style="color:#ff6464; font-size:13px;">⚠️ خطأ في تحميل الدروس</p>';
+      }
+    }
+
+    async function updateVideoCount() {
+      requireAdminUi();
+      if (!selectedCourseId || !isSafeDocId(selectedCourseId)) return;
+      const snap = await getDocs(collection(db, "courses", selectedCourseId, "videos"));
+      await updateDoc(doc(db, "courses", selectedCourseId), {
+        videoCount: snap.size
+      });
+    }
+
+    $("saveVideoBtn").addEventListener("click", async () => {
+      let lessonRecord;
+      try {
+        requireAdminUi();
+        lessonRecord = validateVideoForm();
+      } catch {
+        showMsg("panelMsg", "⚠️ العنوان ورابط فيديو HTTPS مطلوبان", false);
+        return;
+      }
+      if (!selectedCourseId || !isSafeDocId(selectedCourseId)) {
+        showMsg("panelMsg", "⚠️ اختار كورس الأول", false);
+        return;
+      }
+      try {
+        const lessonsCollectionRef = collection(db, "courses", selectedCourseId, "videos");
+        if (editingVideoId) {
+          if (!isSafeDocId(editingVideoId)) throw new Error("BAD_ID");
+          await updateDoc(doc(db, "courses", selectedCourseId, "videos", editingVideoId), lessonRecord);
+          showMsg("panelMsg", "✅ تم تعديل الدرس بنجاح", true);
+        } else {
+          await addDoc(lessonsCollectionRef, lessonRecord);
+          showMsg("panelMsg", "✅ تم رفع الدرس بنجاح", true);
+        }
+        await updateVideoCount();
+        resetVideoForm();
+        loadVideos();
+        loadCourses();
+      } catch (e) {
+        console.error(e);
+        showMsg("panelMsg", "❌ خطأ في الحفظ", false);
+      }
+    });
+    $("cancelVideoBtn").addEventListener("click", resetVideoForm);
+
+    function resetVideoForm() {
+      editingVideoId = null;
+      $("vTitle").value = "";
+      $("vInstructor").value = "";
+      $("vDuration").value = "";
+      $("vOrder").value = ($("videosList").querySelectorAll(".item").length || 0) + 1;
+      $("vUrl").value = "";
+      $("vImage").value = "";
+      $("vImagePositionX").value = 50;
+      $("vImagePositionY").value = 50;
+      $("vImageZoom").value = 100;
+      $("cancelVideoBtn").classList.add("hidden");
+    }
+
+    async function deleteVideo(id) {
+      requireAdminUi();
+      if (!isSafeDocId(id) || !isSafeDocId(selectedCourseId)) { showMsg("panelMsg", "❌ معرف غير صالح", false); return; }
+      if (!confirm("حذف الدرس ده؟")) return;
+      try {
+        await deleteDoc(doc(db, "courses", selectedCourseId, "videos", id));
+        await updateVideoCount();
+        showMsg("panelMsg", "🗑️ تم حذف الدرس", true);
+        loadVideos();
+        loadCourses();
+      } catch (e) {
+        console.error(e);
+        showMsg("panelMsg", "❌ خطأ في الحذف", false);
+      }
+    }
+
+
+    // ===== محرر عرض الصور =====
+    let activeImageEditorPrefix = null;
+
+    function imageEditorFields(prefix) {
+      return prefix === "course"
+        ? { url: $("cImage"), x: $("cImagePositionX"), y: $("cImagePositionY"), zoom: $("cImageZoom") }
+        : { url: $("vImage"), x: $("vImagePositionX"), y: $("vImagePositionY"), zoom: $("vImageZoom") };
+    }
+
+    function updateImageEditorPreview() {
+      const preview = $("imageCropPreview");
+      if (!preview) return;
+      const x = cleanPercent($("imageCropX")?.value);
+      const y = cleanPercent($("imageCropY")?.value);
+      const zoom = cleanZoom($("imageCropZoom")?.value);
+      preview.style.objectPosition = `${x}% ${y}%`;
+      preview.style.transform = `scale(${zoom / 100})`;
+    }
+
+    function openImageEditor(prefix) {
+      const fields = imageEditorFields(prefix);
+      const safeImageUrl = cleanImageUrl(fields.url.value);
+      if (!safeImageUrl) {
+        showMsg("panelMsg", "⚠️ ضع رابط صورة صحيح يبدأ بـ https:// أولاً", false);
+        return;
+      }
+
+      activeImageEditorPrefix = prefix;
+      $("imageCropPreview").src = safeImageUrl;
+      $("imageCropX").value = cleanPercent(fields.x.value);
+      $("imageCropY").value = cleanPercent(fields.y.value);
+      $("imageCropZoom").value = cleanZoom(fields.zoom.value);
+      updateImageEditorPreview();
+      $("imageCropModal").classList.add("show");
+      $("imageCropModal").setAttribute("aria-hidden", "false");
+    }
+
+    function closeImageEditor() {
+      activeImageEditorPrefix = null;
+      $("imageCropPreview").removeAttribute("src");
+      $("imageCropModal").classList.remove("show");
+      $("imageCropModal").setAttribute("aria-hidden", "true");
+    }
+
+    function applyImageEditorChanges() {
+      if (!activeImageEditorPrefix) return;
+      const fields = imageEditorFields(activeImageEditorPrefix);
+      fields.x.value = cleanPercent($("imageCropX").value);
+      fields.y.value = cleanPercent($("imageCropY").value);
+      fields.zoom.value = cleanZoom($("imageCropZoom").value);
+      closeImageEditor();
+      showMsg("panelMsg", "✅ تم تطبيق تعديل عرض الصورة — اضغط حفظ لتخزينه", true);
+    }
+
+    document.querySelectorAll("[data-image-editor]").forEach((button) => {
+      button.addEventListener("click", () => openImageEditor(button.dataset.imageEditor));
+    });
+    ["imageCropX", "imageCropY", "imageCropZoom"].forEach((controlId) => {
+      $(controlId)?.addEventListener("input", updateImageEditorPreview);
+    });
+    $("imageCropApplyBtn")?.addEventListener("click", applyImageEditorChanges);
+    $("imageCropCloseBtn")?.addEventListener("click", closeImageEditor);
+    $("imageCropResetBtn")?.addEventListener("click", () => {
+      $("imageCropX").value = 50;
+      $("imageCropY").value = 50;
+      $("imageCropZoom").value = 100;
+      updateImageEditorPreview();
+    });
+    $("imageCropModal")?.addEventListener("click", (event) => {
+      if (event.target?.id === "imageCropModal") closeImageEditor();
+    });
+
+    // ===== استيراد محتوى تجريبي =====
+    $("seedBtn").addEventListener("click", async () => {
+      try { requireAdminUi(); } catch { showMsg("panelMsg", "❌ غير مصرح", false); return; }
+      if (!confirm("هيتم إضافة كورس تجريبي فيه 3 دروس.. متأكد؟")) return;
+      const DEMO_URL =
+        "https://play.gumlet.io/embed/6a915228ceaa98dd5e09c605?background=false&autoplay=false&loop=false&disable_player_controls=false";
+      try {
+        const ref = await addDoc(collection(db, "courses"), {
+          imageUrl: "",
+          imagePositionX: 50,
+          imagePositionY: 50,
+          imageZoom: 100,
+          order: (coursesCache.length + 1),
+          title: "الكورس الأول",
+          short: "وصف قصير عن الكورس — عدّله من لوحة الإدارة",
+          description: "وصف تفصيلي للكورس بيظهر فوق قائمة الدروس — عدّله من لوحة الإدارة.",
+          videoCount: 3
+        });
+        const lessons = [
+          { title: "النحو — المعلقات", instructor: "محمد صلاح", duration: "9 دقائق" },
+          { title: "النحو — إسناد الأفعال", instructor: "محمد صلاح", duration: "8 دقائق" },
+          { title: "الأدب — تطور الشعر", instructor: "محمد صلاح", duration: "10 دقائق" }
+        ];
+        let i = 1;
+        for (const l of lessons) {
+          await addDoc(collection(db, "courses", ref.id, "videos"), {
+            ...l,
+            order: i++,
+            videoUrl: DEMO_URL,
+            imageUrl: "",
+            imagePositionX: 50,
+            imagePositionY: 50,
+            imageZoom: 100
+          });
+        }
+        showMsg("panelMsg", "✅ تم الاستيراد — عدّل العناوين واللينكات براحتك", true);
+        loadCourses();
+      } catch (e) {
+        console.error(e);
+        showMsg("panelMsg", "❌ خطأ في الاستيراد — راجع قواعد Firestore", false);
+      }
+    });
+  </script>
+<script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"1954b47c125f43f8b4338b3c4f804e4f","spa":2}' crossorigin="anonymous"></script>
+</body>
+</html>

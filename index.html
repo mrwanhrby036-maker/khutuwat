@@ -24,6 +24,49 @@
 
 <body>
 
+  <!-- ===== خلفية ثلاثية الأبعاد ديكورية لكل الصفحة ===== -->
+  <div id="bgShapes3D" aria-hidden="true">
+    <div class="bg-shape bg-shape-1">
+      <div class="bg-shape-inner">
+        <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="4">
+          <path d="M10 90 H35 V70 H60 V50 H90 V30" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </div>
+    <div class="bg-shape bg-shape-2">
+      <div class="bg-shape-inner">
+        <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="4">
+          <path d="M10 20 C30 10 45 15 50 25 C55 15 70 10 90 20 V80 C70 70 55 75 50 85 C45 75 30 70 10 80 Z" stroke-linejoin="round"/>
+          <path d="M50 25 V85" stroke-linecap="round"/>
+        </svg>
+      </div>
+    </div>
+    <div class="bg-shape bg-shape-3">
+      <div class="bg-shape-inner">
+        <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="4">
+          <path d="M10 35 L50 15 L90 35 L50 55 Z" stroke-linejoin="round"/>
+          <path d="M28 43 V65 C28 75 40 82 50 82 C60 82 72 75 72 65 V43" stroke-linecap="round"/>
+          <path d="M90 35 V60" stroke-linecap="round"/>
+        </svg>
+      </div>
+    </div>
+    <div class="bg-shape bg-shape-4">
+      <div class="bg-shape-inner">
+        <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="4">
+          <path d="M10 90 H35 V70 H60 V50 H90 V30" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </div>
+    <div class="bg-shape bg-shape-5">
+      <div class="bg-shape-inner">
+        <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="4">
+          <path d="M10 20 C30 10 45 15 50 25 C55 15 70 10 90 20 V80 C70 70 55 75 50 85 C45 75 30 70 10 80 Z" stroke-linejoin="round"/>
+          <path d="M50 25 V85" stroke-linecap="round"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+
   <!-- ===== مقدمة الفضاء الذهبي 3D ===== -->
   <div id="intro3d">
     <canvas id="introCanvas"></canvas>
@@ -51,6 +94,7 @@
       <ul class="nav-links" id="navLinks">
         <li><a href="#home" class="nav-link active" data-section="home">الرئيسية</a></li>
         <li><a href="#courses" class="nav-link" data-section="courses">الكورسات</a></li>
+        <li><a href="#freeLecture" class="nav-link" data-section="freeLecture">محاضرة مجانية</a></li>
         <li><a href="#features" class="nav-link" data-section="features">المميزات</a></li>
       </ul>
 
@@ -88,7 +132,7 @@
       </div>
     </div>
     <div class="hero-image fade-up">
-      <div class="hero-circle" style="background-image: url('https://i.ibb.co/HDY0zgw2/file-enc.jpg'); background-size: cover; background-position: center;"></div>
+      <div class="hero-circle" style="background-image: url('https://i.ibb.co/tTHWKtc7/file-00000000719881f4be722621e43e964f.png'); background-size: cover; background-position: center;"></div>
     </div>
   </section>
 
@@ -105,10 +149,48 @@
     </div>
   </section>
 
+  <!-- ===== قسم المحاضرة المجانية =====
+       ملاحظة أمان: القسم ده ثابت بالكامل (static) ومفيهوش أي اتصال بـ Firestore
+       خالص — عشان يبقى مفتوح لأي زائر (حتى لو مش مسجل دخول) من غير أي احتمال
+       إنه يلمس أو يسرّب بيانات الكورسات المدفوعة اللي بتتخزن هناك. -->
+  <section class="section section-dark" id="freeLecture">
+    <div class="container">
+      <div class="section-head fade-up">
+        <span class="section-tag"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3.8l2.3 4.7 5.2.8-3.8 3.7.9 5.2-4.6-2.4-4.6 2.4.9-5.2-3.8-3.7 5.2-.8L12 3.8Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg> محاضرة مجانية</span>
+        <h2 class="section-title">محاضرة <span class="gold-text">مجانية بالكامل</span></h2>
+        <p class="section-desc">مفتوحة لأي زائر بدون تسجيل — حمّل الملف المرفق أولاً عشان يتفعّل الفيديو</p>
+      </div>
+
+      <div class="free-lecture-card fade-up">
+        <div class="free-lecture-pdf">
+          <div class="free-lecture-pdf-icon">
+            <svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" style="width:32px;height:32px;"><path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M15 3v5h5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M8.5 17v-5h1.6a1.4 1.4 0 0 1 0 2.8H8.5m5-2.8v5m0-5h1.5a1.5 1.5 0 0 1 0 3H13.5m3-3v5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="free-lecture-pdf-info">
+            <h3>الخطوة الأولى: حمّل الملف المرفق</h3>
+            <p>اختبار شدة التلعثم — النسخة العربية (PDF)</p>
+          </div>
+          <a class="btn btn-gold" id="downloadPdfBtn" href="اختبار_شدة_التلعثم.pdf" download>
+            <i class="fas fa-download"></i> تحميل الـ PDF
+          </a>
+        </div>
+
+        <div class="free-lecture-video-wrap" id="freeLectureVideoWrap">
+          <div class="free-lecture-locked" id="freeLectureLocked">
+            <svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" style="width:44px;height:44px;"><rect x="5" y="10" width="14" height="10" rx="2.4" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 10V8a4 4 0 0 1 8 0v2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+            <p>حمّل الملف الأول عشان تقدر تشاهد المحاضرة</p>
+          </div>
+          <div class="ca-video" id="freeLectureVideoBox"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- ===== قسم المميزات ===== -->
   <section class="section section-dark" id="features">
     <div class="container">
       <div class="section-head fade-up">
+
         <span class="section-tag"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3.8l2.3 4.7 5.2.8-3.8 3.7.9 5.2-4.6-2.4-4.6 2.4.9-5.2-3.8-3.7 5.2-.8L12 3.8Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg> لماذا نحن</span>
         <h2 class="section-title">مميزات <span class="gold-text">المنصة</span></h2>
         <p class="section-desc">موارد تعليمية مبسطة للوعي بالتربية الخاصة والتواصل التربوي الداعم</p>

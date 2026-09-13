@@ -196,6 +196,7 @@ window.addEventListener("load", () => {
   renderCourseShowcase();
   loadCoursesFromFirestore();
   runIntro();
+  updateScrollProgress();
 });
 
 // ===== مقدمة الفضاء الذهبي 3D (من 0 إلى 6 ثواني) =====
@@ -435,6 +436,41 @@ window.addEventListener("scroll", () => {
     .getElementById("scrollTopBtn")
     .classList.toggle("visible", window.scrollY > 400);
   updateActiveLink();
+  updateScrollProgress();
+});
+
+// ===== شريط تقدم القراءة =====
+function updateScrollProgress() {
+  const bar = document.getElementById("scrollProgressBar");
+  if (!bar) return;
+  const doc = document.documentElement;
+  const scrollableHeight = doc.scrollHeight - doc.clientHeight;
+  const percent = scrollableHeight > 0 ? (window.scrollY / scrollableHeight) * 100 : 0;
+  bar.style.width = `${Math.min(100, Math.max(0, percent))}%`;
+}
+
+// ===== الزر العائم للوصول السريع =====
+const fabWrap = document.getElementById("fabWrap");
+const fabMainBtn = document.getElementById("fabMainBtn");
+
+function closeFab() {
+  fabWrap?.classList.remove("open");
+  fabMainBtn?.setAttribute("aria-expanded", "false");
+}
+
+fabMainBtn?.addEventListener("click", () => {
+  const isOpen = fabWrap?.classList.toggle("open");
+  fabMainBtn.setAttribute("aria-expanded", isOpen ? "true" : "false");
+});
+
+document.addEventListener("click", (e) => {
+  if (fabWrap?.classList.contains("open") && !fabWrap.contains(e.target)) {
+    closeFab();
+  }
+});
+
+document.getElementById("fabLectureItem")?.addEventListener("click", () => {
+  closeFab();
 });
 
 // ===== دالة مساعدة =====
@@ -811,7 +847,7 @@ function openLesson(ci, vi) {
   }
   const directVideo = safeVideoUrl(v.videoUrl);
   const player = embed
-    ? `<iframe src="${attr(embed)}" title="${attr(v.title)}" referrerpolicy="origin" sandbox="allow-scripts allow-same-origin allow-presentation" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen></iframe>`
+    ? `<iframe src="${attr(embed)}" title="${attr(v.title)}" referrerpolicy="origin" sandbox="allow-scripts allow-same-origin allow-presentation" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen"></iframe>`
     : directVideo
       ? `<video controls controlsList="nodownload" preload="metadata" src="${attr(directVideo)}"></video>`
       : `<div class="ca-empty">⚠️ رابط الفيديو غير مسموح أو غير صالح</div>`;
@@ -1163,7 +1199,7 @@ function unlockFreeLecture() {
   if (!box.querySelector("iframe")) {
     const embed = toEmbedUrl(FREE_LECTURE_YOUTUBE_URL);
     if (embed) {
-      box.innerHTML = `<iframe src="${attr(embed)}" title="محاضرة مجانية" referrerpolicy="origin" sandbox="allow-scripts allow-same-origin allow-presentation" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen></iframe>`;
+      box.innerHTML = `<iframe src="${attr(embed)}" title="محاضرة مجانية" referrerpolicy="origin" sandbox="allow-scripts allow-same-origin allow-presentation" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen"></iframe>`;
     }
   }
   locked.classList.add("unlocked");

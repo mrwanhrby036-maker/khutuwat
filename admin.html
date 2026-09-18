@@ -533,7 +533,6 @@
     // الصور والفيديوهات يمكن أن تكون من مصادر خارجية، لكن HTTPS فقط.
     // إن أردت Allowlist صارمة لاحقًا يمكن تقييدها هنا وفي Firestore Rules.
     const ALLOWED_IMAGE_HOSTS = null;
-    const IMGBB_API_KEY = "df23d63da16c0f775d86abeb3dc6d6cb";
     const MAX_IMAGE_BYTES = 32 * 1024 * 1024;
     let adminVerified = false;
 
@@ -595,10 +594,17 @@
       if (!(file instanceof File) || !file.type.startsWith("image/") || file.size > MAX_IMAGE_BYTES) {
         throw new Error("INVALID_IMAGE");
       }
-      const body = new FormData();
-      body.append("key", IMGBB_API_KEY);
-      body.append("image", file);
-      const response = await fetch("https://api.imgbb.com/1/upload", { method: "POST", body });
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      let binary = "";
+      const chunkSize = 0x8000;
+      for (let index = 0; index < bytes.length; index += chunkSize) {
+        binary += String.fromCharCode(...bytes.subarray(index, index + chunkSize));
+      }
+      const response = await fetch("/api/upload-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image: btoa(binary), type: file.type })
+      });
       const result = await response.json().catch(() => null);
       if (!response.ok || !result?.success || !result?.data?.url) throw new Error("IMAGE_UPLOAD_FAILED");
       return cleanImageUrl(result.data.url);

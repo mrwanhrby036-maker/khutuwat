@@ -98,6 +98,34 @@ service cloud.firestore {
         && (!('email' in request.resource.data) || validOptionalText(request.resource.data.email, 254));
     }
 
+    function validStudentProfile() {
+      return request.resource.data.keys().hasOnly(['email', 'lastLoginAt'])
+        && request.resource.data.keys().hasAll(['email'])
+        && validOptionalText(request.resource.data.email, 254);
+    }
+
+    function validProgress() {
+      return request.resource.data.keys().hasOnly([
+          'studentUid', 'studentEmail', 'courseId', 'courseTitle', 'completedLessonIds',
+          'completedCount', 'totalLessons', 'percent', 'updatedAt'
+        ])
+        && request.resource.data.keys().hasAll([
+          'studentUid', 'studentEmail', 'courseId', 'courseTitle', 'completedLessonIds',
+          'completedCount', 'totalLessons', 'percent', 'updatedAt'
+        ])
+        && request.resource.data.studentUid == request.auth.uid
+        && validOptionalText(request.resource.data.studentEmail, 254)
+        && validText(request.resource.data.courseId, 1, 160)
+        && validText(request.resource.data.courseTitle, 1, 120)
+        && request.resource.data.completedLessonIds is list
+        && request.resource.data.completedCount is int
+        && request.resource.data.totalLessons is int
+        && validPercent(request.resource.data.percent)
+        && request.resource.data.completedCount >= 0
+        && request.resource.data.totalLessons >= 0
+        && request.resource.data.completedCount <= request.resource.data.totalLessons;
+    }
+
     match /admins/{adminUid} {
       allow get: if signedIn() && request.auth.uid == adminUid;
       allow list: if false;
@@ -119,14 +147,18 @@ service cloud.firestore {
       }
     }
 
-    match /userProgress/{userId} {
-      // كل مستخدم يقدر يقرأ/يكتب تقدّمه الخاص فقط.
-      // لا يجوز لأي مستخدم الوصول إلى سجل مستخدم آخر.
-      // الأدمن فقط يقدر يعرض تقدم الطلبة في لوحة الإدارة.
-      allow get: if (signedIn() && request.auth.uid == userId) || isAdmin();
-      allow list: if isAdmin();
-      allow create, update: if signedIn() && request.auth.uid == userId;
-      allow delete: if signedIn() && request.auth.uid == userId;
+    match /studentProfiles/{studentUid} {
+      allow read: if isAdmin() || (signedIn() && request.auth.uid == studentUid);
+      allow create: if (isAdmin() || (signedIn() && request.auth.uid == studentUid))
+        && validStudentProfile();
+      allow update: if signedIn() && request.auth.uid == studentUid && validStudentProfile();
+      allow delete: if isAdmin();
+    }
+
+    match /progress/{progressId} {
+      allow read: if isAdmin() || (signedIn() && resource.data.studentUid == request.auth.uid);
+      allow create, update: if signedIn() && request.resource.data.studentUid == request.auth.uid && validProgress();
+      allow delete: if isAdmin() || (signedIn() && resource.data.studentUid == request.auth.uid);
     }
 
     match /{document=**} {

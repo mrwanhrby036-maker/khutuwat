@@ -5,6 +5,7 @@ node_modules/
 .pnpm-store/
 .yarn/
 
+
 # ==================================================
 # Environment Variables / Secrets
 # لا ترفع أي ملف يحتوي مفاتيح أو أسرار
@@ -12,6 +13,7 @@ node_modules/
 .env
 .env.*
 *.env
+
 
 # ==================================================
 # Firebase Service Accounts / Admin SDK Keys
@@ -21,6 +23,7 @@ node_modules/
 *service-account*.json
 *serviceAccount*.json
 chatapp-e8283-firebase-adminsdk*.json
+
 
 # ==================================================
 # Build / Cache Output
@@ -34,6 +37,7 @@ out/
 .vercel/
 coverage/
 
+
 # ==================================================
 # Logs
 # ==================================================
@@ -42,6 +46,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+
 
 # ==================================================
 # OS / Editor Files
@@ -53,6 +58,7 @@ Thumbs.db
 *.swp
 *.swo
 
+
 # ==================================================
 # Temporary / Backup Files
 # ==================================================
@@ -62,6 +68,7 @@ Thumbs.db
 *.backup
 *.old
 
+
 # ==================================================
 # Local Security / Maintenance Files
 # ملفات محلية أو ملاحظات لا تحتاج الظهور على الموقع
@@ -70,6 +77,7 @@ SECURITY_REVIEW.md
 set-admin-claim.mjs
 admin_script_check.mjs
 
+
 # ==================================================
 # Optional Firebase Hosting / Storage Files
 # أنت تستخدم Vercel، لذلك هذه الملفات ليست مطلوبة للنشر الحالي
@@ -77,6 +85,7 @@ admin_script_check.mjs
 # ==================================================
 firebase.json
 storage.rules
+
 
 # ==================================================
 # Duplicate / Exported Copies

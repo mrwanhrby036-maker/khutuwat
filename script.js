@@ -10,6 +10,9 @@ import {
   getFirestore,
   collection,
   getDocs,
+  getDoc,
+  setDoc,
+  doc,
   query,
   orderBy
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
@@ -163,6 +166,7 @@ let sections = ["home", "courses", "features"];
 let currentSectionIndex = 0;
 let pendingCourseId = null;
 let freshLogin = false; // true فقط لو المستخدم ضغط "دخول" الآن (مش استعادة جلسة قديمة)
+const progressCache = new Map();
  
 // ===== إخفاء شيمر تحميل الثمبنيلز (بديل عن onload/onerror الـ inline عشان يشتغل مع CSP صارم) =====
 // load/error مش بيعملوا bubble على <img>، فلازم نستخدم capture phase على مستوى الـ document
@@ -435,7 +439,6 @@ window.addEventListener("scroll", () => {
   document
     .getElementById("scrollTopBtn")
     .classList.toggle("visible", window.scrollY > 400);
-  updateActiveLink();
   updateScrollProgress();
 });
  
@@ -751,6 +754,9 @@ function renderCourseLessons(idx) {
     loadLessons(idx);
     return;
   }
+  loadCourseProgress(c.id).then(() => {
+    if (caState.courseIdx === idx) paintLessons(idx);
+  });
   paintLessons(idx);
 }
  
@@ -768,7 +774,11 @@ async function loadLessons(idx) {
     c.videos = [];
     c.loadError = true;
   }
-  if (caState.courseIdx === idx) paintLessons(idx);
+  if (caState.courseIdx === idx) {
+    loadCourseProgress(c.id).then(() => {
+      if (caState.courseIdx === idx) paintLessons(idx);
+    });
+  }
 }
  
 function lessonsShell(c, inner) {
@@ -779,6 +789,57 @@ function lessonsShell(c, inner) {
       <p class="ca-course-desc">${escapeHtml(c.description)}</p>
       ${inner}
     </div>`;
+}
+
+function progressDocId(courseId) {
+  return `${currentUser?.uid || ""}_${courseId}`;
+}
+
+async function loadCourseProgress(courseId) {
+  if (!currentUser || !isSafeDocId(courseId)) return new Set();
+  const key = progressDocId(courseId);
+  if (progressCache.has(key)) return progressCache.get(key);
+  try {
+    const snap = await getDoc(doc(db, "progress", key));
+    const completed = new Set(
+      Array.isArray(snap.data()?.completedLessonIds)
+        ? snap.data().completedLessonIds.filter(isSafeDocId)
+        : []
+    );
+    progressCache.set(key, completed);
+    return completed;
+  } catch (e) {
+    console.error("تعذر تحميل تقدم الطالب:", e);
+    return new Set();
+  }
+}
+
+async function saveCourseProgress(course, completed) {
+  if (!currentUser || !course?.id) return;
+  const completedLessonIds = [...completed];
+  const totalLessons = course.videos?.length || 0;
+  await setDoc(doc(db, "progress", progressDocId(course.id)), {
+    studentUid: currentUser.uid,
+    studentEmail: currentUser.email || "",
+    courseId: course.id,
+    courseTitle: course.title,
+    completedLessonIds,
+    completedCount: completedLessonIds.length,
+    totalLessons,
+    percent: totalLessons ? Math.round((completedLessonIds.length / totalLessons) * 100) : 0,
+    updatedAt: new Date()
+  });
+}
+
+function paintProgressSummary(course, completed) {
+  const total = course.videos?.length || 0;
+  const percent = total ? Math.round((completed.size / total) * 100) : 0;
+  const percentEl = document.getElementById("courseProgressPercent");
+  const fillEl = document.getElementById("courseProgressFill");
+  const countEl = document.getElementById("courseProgressCount");
+  if (percentEl) percentEl.textContent = `${percent}%`;
+  if (fillEl) fillEl.style.width = `${percent}%`;
+  if (countEl) countEl.textContent = `${completed.size} من ${total} دروس مكتملة`;
 }
  
 function paintLessons(idx) {
@@ -791,12 +852,17 @@ function paintLessons(idx) {
   } else if (!c.videos || !c.videos.length) {
     inner = '<div class="ca-empty">📭 لا توجد فيديوهات في الكورس ده لسه</div>';
   } else {
+    const completed = progressCache.get(progressDocId(c.id)) || new Set();
     inner =
-      '<div class="lesson-list">' +
+      `<div class="course-progress" aria-label="تقدمك في الكورس">
+        <div class="course-progress-head"><span>تقدمك في الكورس</span><strong id="courseProgressPercent">0%</strong></div>
+        <div class="course-progress-track"><span id="courseProgressFill"></span></div>
+        <small id="courseProgressCount">0 من ${c.videos.length} دروس مكتملة</small>
+      </div><div class="lesson-list">` +
       c.videos
         .map(
           (v, i) => `
-          <div class="lesson-row" data-c="${idx}" data-v="${i}">
+          <div class="lesson-row ${completed.has(v.id) ? "is-complete" : ""}" data-c="${idx}" data-v="${i}">
             ${lessonThumbHtml(v)}
             <div class="lesson-info">
               <div class="lesson-title">
@@ -807,6 +873,7 @@ function paintLessons(idx) {
                 <span>${svgIcon("clock")} ${escapeHtml(v.duration || "—")}</span>
               </div>
             </div>
+            <button class="lesson-complete-btn" type="button" data-complete="${attr(v.id)}" aria-label="${completed.has(v.id) ? "إلغاء إتمام الدرس" : "تحديد الدرس كمكتمل"}">${completed.has(v.id) ? "✓" : ""}</button>
           </div>`
         )
         .join("") +
@@ -821,6 +888,27 @@ function paintLessons(idx) {
       openLesson(Number(r.dataset.c), Number(r.dataset.v))
     )
   );
+  const completed = progressCache.get(progressDocId(c.id)) || new Set();
+  paintProgressSummary(c, completed);
+  document.querySelectorAll("[data-complete]").forEach((button) => {
+    button.addEventListener("click", async (event) => {
+      event.stopPropagation();
+      const lessonId = button.dataset.complete;
+      if (!isSafeDocId(lessonId)) return;
+      if (completed.has(lessonId)) completed.delete(lessonId);
+      else completed.add(lessonId);
+      button.textContent = completed.has(lessonId) ? "✓" : "";
+      button.closest(".lesson-row")?.classList.toggle("is-complete", completed.has(lessonId));
+      progressCache.set(progressDocId(c.id), completed);
+      paintProgressSummary(c, completed);
+      try {
+        await saveCourseProgress(c, completed);
+      } catch (e) {
+        console.error(e);
+        showToast("error", "⚠️ تعذر حفظ التقدم", "تأكد من اتصال الإنترنت وحاول مرة أخرى");
+      }
+    });
+  });
 }
  
  
@@ -1025,36 +1113,6 @@ function closeCourseArea() {
   if (main) main.innerHTML = "";
 }
  
-// ===== القائمة المنسدلة =====
-document.getElementById("hamburger")?.addEventListener("click", () => {
-  document.getElementById("hamburger").classList.toggle("open");
-  document.getElementById("navLinks").classList.toggle("open");
-});
- 
-document.querySelectorAll(".nav-link").forEach((l) => {
-  l.addEventListener("click", () => {
-    document.getElementById("hamburger")?.classList.remove("open");
-    document.getElementById("navLinks")?.classList.remove("open");
-    const sec = l.dataset.section;
-    if (sec) {
-      const i = sections.indexOf(sec);
-      if (i !== -1) currentSectionIndex = i;
-    }
-  });
-});
- 
-function updateActiveLink() {
-  const secs = document.querySelectorAll("section[id]");
-  const links = document.querySelectorAll(".nav-link");
-  let cur = "";
-  secs.forEach((s) => {
-    if (window.scrollY >= s.offsetTop - 100) cur = s.id;
-  });
-  links.forEach((l) => {
-    l.classList.toggle("active", l.getAttribute("href") === `#${cur}`);
-  });
-}
- 
 document.getElementById("scrollTopBtn")?.addEventListener("click", () => {
   window.scrollTo({ top: 0, behavior: "smooth" });
 });
@@ -1204,6 +1262,10 @@ onAuthStateChanged(auth, (u) => {
   updateLoginUI();
  
   if (u) {
+    setDoc(doc(db, "studentProfiles", u.uid), {
+      email: u.email || "",
+      lastLoginAt: new Date()
+    }, { merge: true }).catch((e) => console.error("تعذر حفظ ملف الطالب:", e));
     closeAuthModal();
     // لو فتح تسجيل الدخول عشان يدخل كورس محدد → دخّله على طول مع احتفال الكورس
     if (pendingCourseId) {

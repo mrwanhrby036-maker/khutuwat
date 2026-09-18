@@ -576,12 +576,12 @@ function toEmbedUrl(url) {
  
     if (h === "youtu.be") {
       videoId = u.pathname.slice(1);
-      return YOUTUBE_ID_RE.test(videoId) ? `https://www.youtube.com/embed/${videoId}` : null;
+      return YOUTUBE_ID_RE.test(videoId) ? `https://www.youtube.com/embed/${videoId}?enablejsapi=1&origin=${encodeURIComponent(location.origin)}` : null;
     }
     if (h.endsWith("youtube.com")) {
       if (u.pathname === "/watch") videoId = u.searchParams.get("v") || "";
       else if (u.pathname.startsWith("/shorts/") || u.pathname.startsWith("/live/") || u.pathname.startsWith("/embed/")) videoId = u.pathname.split("/")[2] || "";
-      return YOUTUBE_ID_RE.test(videoId) ? `https://www.youtube.com/embed/${videoId}` : null;
+      return YOUTUBE_ID_RE.test(videoId) ? `https://www.youtube.com/embed/${videoId}?enablejsapi=1&origin=${encodeURIComponent(location.origin)}` : null;
     }
     if (h.endsWith("drive.google.com")) {
       const m = safe.match(/\/file\/d\/([^/]+)/) || safe.match(/[?&]id=([^&]+)/);
@@ -590,11 +590,15 @@ function toEmbedUrl(url) {
     }
     if (h === "play.gumlet.io" && u.pathname.startsWith("/embed/")) {
       const id = u.pathname.split("/")[2] || "";
-      return GUMLET_ID_RE.test(id) ? u.toString() : null;
+      if (!GUMLET_ID_RE.test(id)) return null;
+      u.searchParams.set("enable_player_events", "true");
+      return u.toString();
     }
     if (h.endsWith("gumlet.tv") && u.pathname.startsWith("/watch/")) {
       const id = u.pathname.split("/")[2] || "";
-      return GUMLET_ID_RE.test(id) ? `https://play.gumlet.io/embed/${encodeURIComponent(id)}` : null;
+      return GUMLET_ID_RE.test(id)
+        ? `https://play.gumlet.io/embed/${encodeURIComponent(id)}?enable_player_events=true`
+        : null;
     }
     return null;
   } catch {
@@ -994,10 +998,13 @@ window.addEventListener("message", (event) => {
   const payload = typeof event.data === "string"
     ? (() => { try { return JSON.parse(event.data); } catch { return event.data; } })()
     : event.data;
-  const eventName = typeof payload === "string"
-    ? payload.toLowerCase()
-    : String(payload?.event || payload?.type || payload?.name || "").toLowerCase();
-  if (!/(ended|complete|finished|finish)/.test(eventName)) return;
+  const messageText = typeof payload === "string"
+    ? payload
+    : JSON.stringify(payload || "");
+  const youtubeEnded = payload?.event === "infoDelivery"
+    && Number(payload?.info?.playerState) === 0;
+  const ended = youtubeEnded || /(ended|completed|complete|finished|finish|video_end|videoended)/i.test(messageText);
+  if (!ended) return;
   const course = COURSES[caState.courseIdx];
   const video = course?.videos?.[caState.videoIdx];
   if (course && video) completeLesson(course, video.id);

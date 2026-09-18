@@ -198,6 +198,33 @@
     }
     .image-url-row input { margin-top: 0; }
     .image-url-row input[type="file"] { padding: 8px; }
+    .admin-access-menu { position: relative; }
+    .admin-access-menu summary { color: var(--gold); cursor: pointer; font-size: 13px; list-style: none; }
+    .admin-access-menu summary::-webkit-details-marker { display: none; }
+    .admin-access-body {
+      position: absolute;
+      z-index: 20;
+      top: calc(100% + 8px);
+      left: 0;
+      width: min(310px, 80vw);
+      padding: 14px;
+      background: var(--black-4);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: 0 12px 30px rgba(0,0,0,.45);
+    }
+    .admin-access-body label { margin-bottom: 8px; }
+    .admin-access-body select {
+      width: 100%;
+      margin-top: 5px;
+      padding: 10px;
+      color: #fff;
+      background: var(--black-3);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-family: inherit;
+    }
+    .admin-access-body small { display: block; color: var(--gray); margin-top: 9px; line-height: 1.6; }
     .image-edit-btn {
       flex: 0 0 auto;
       white-space: nowrap;
@@ -321,7 +348,23 @@
       <div class="msg" id="panelMsg"></div>
 
       <div class="card">
-        <h2><i class="fas fa-user-plus"></i> طالب جديد</h2>
+        <div class="student-toolbar">
+          <h2 style="margin-bottom:0;"><i class="fas fa-user-plus"></i> طالب جديد</h2>
+          <details class="admin-access-menu">
+            <summary><i class="fas fa-user-shield"></i> صلاحية الأدمن</summary>
+            <div class="admin-access-body">
+              <label>اختار الطالب
+                <select id="adminStudentSelect">
+                  <option value="">جاري تحميل الطلاب...</option>
+                </select>
+              </label>
+              <button class="btn btn-outline btn-sm" id="toggleAdminBtn" type="button" disabled>
+                <i class="fas fa-user-shield"></i> تحديد كأدمن
+              </button>
+              <small id="adminAccessStatus">اختر طالبًا لإدارة الصلاحية</small>
+            </div>
+          </details>
+        </div>
         <p style="color:var(--gray); font-size:13px; line-height:1.8; margin-bottom:14px;">
           الحساب سيتم إنشاؤه في Firebase Authentication، وكلمة المرور لا يتم حفظها في Firestore.
         </p>
@@ -702,6 +745,7 @@ function svgIcon(name, className = "") {
         $("whoEmail").textContent = u.email || "";
         loadCourses();
         loadStudents();
+        loadAdminStudentOptions();
       }
     });
 
@@ -779,6 +823,97 @@ function svgIcon(name, className = "") {
 
     $("refreshStudentsBtn").addEventListener("click", loadStudents);
 
+    let selectedAdminStudent = null;
+
+    async function loadAdminStudentOptions() {
+      const select = $("adminStudentSelect");
+      const button = $("toggleAdminBtn");
+      const status = $("adminAccessStatus");
+      if (!select || !button || !status) return;
+      try {
+        requireAdminUi();
+        const studentsSnap = await getDocs(collection(db, "studentProfiles"));
+        const students = await Promise.all(studentsSnap.docs.map(async (studentDoc) => {
+          const profile = studentDoc.data() || {};
+          const adminSnap = await getDoc(doc(db, "admins", studentDoc.id));
+          return {
+            uid: studentDoc.id,
+            email: cleanText(profile.email || studentDoc.id, 254),
+            active: adminSnap.exists() && adminSnap.data()?.active === true
+          };
+        }));
+        select.replaceChildren(new Option("اختار طالبًا", ""));
+        students
+          .sort((a, b) => a.email.localeCompare(b.email))
+          .forEach((student) => {
+            const option = new Option(`${student.email}${student.active ? " — أدمن" : ""}`, student.uid);
+            select.append(option);
+          });
+        selectedAdminStudent = null;
+        button.disabled = true;
+        status.textContent = students.length ? "اختر طالبًا لإدارة الصلاحية" : "لا يوجد طلاب مسجلون";
+      } catch {
+        select.replaceChildren(new Option("تعذر تحميل الطلاب", ""));
+        button.disabled = true;
+        status.textContent = "تعذر تحميل قائمة الصلاحيات";
+      }
+    }
+
+    $("adminStudentSelect").addEventListener("change", async (event) => {
+      const uid = event.target.value;
+      const button = $("toggleAdminBtn");
+      const status = $("adminAccessStatus");
+      selectedAdminStudent = null;
+      button.disabled = !uid;
+      if (!uid) {
+        status.textContent = "اختر طالبًا لإدارة الصلاحية";
+        return;
+      }
+      try {
+        const profileSnap = await getDoc(doc(db, "studentProfiles", uid));
+        const adminSnap = await getDoc(doc(db, "admins", uid));
+        const email = cleanText(profileSnap.data()?.email || uid, 254);
+        selectedAdminStudent = { uid, email, active: adminSnap.exists() && adminSnap.data()?.active === true };
+        button.innerHTML = selectedAdminStudent.active
+          ? '<i class="fas fa-user-slash"></i> إلغاء صلاحية الأدمن'
+          : '<i class="fas fa-user-shield"></i> تحديد كأدمن';
+        status.textContent = selectedAdminStudent.active
+          ? "هذا الطالب لديه صلاحية أدمن"
+          : "هذا الطالب ليس أدمن";
+      } catch {
+        selectedAdminStudent = null;
+        button.disabled = true;
+        status.textContent = "تعذر قراءة حالة الصلاحية";
+      }
+    });
+
+    $("toggleAdminBtn").addEventListener("click", async () => {
+      if (!selectedAdminStudent) return;
+      if (selectedAdminStudent.uid === auth.currentUser?.uid) {
+        showMsg("panelMsg", "⚠️ لا يمكن إلغاء صلاحية حسابك الحالي من هنا", false);
+        return;
+      }
+      const button = $("toggleAdminBtn");
+      button.disabled = true;
+      try {
+        requireAdminUi();
+        if (selectedAdminStudent.active) {
+          await deleteDoc(doc(db, "admins", selectedAdminStudent.uid));
+          showMsg("panelMsg", "✅ تم إلغاء صلاحية الأدمن", true);
+        } else {
+          await setDoc(doc(db, "admins", selectedAdminStudent.uid), {
+            active: true,
+            email: selectedAdminStudent.email
+          });
+          showMsg("panelMsg", "✅ تم تحديد الطالب كأدمن", true);
+        }
+        await loadAdminStudentOptions();
+      } catch {
+        showMsg("panelMsg", "❌ تعذر تحديث صلاحية الأدمن — انشر قواعد Firestore الجديدة", false);
+        button.disabled = false;
+      }
+    });
+
     $("createStudentBtn").addEventListener("click", async () => {
       let email = $("studentEmail").value.trim().toLowerCase();
       const password = $("studentPassword").value;
@@ -810,6 +945,7 @@ function svgIcon(name, className = "") {
         $("studentPassword").value = "";
         showMsg("panelMsg", "✅ تم تسجيل الطالب بنجاح ويمكنه الدخول الآن", true);
         await loadStudents();
+        await loadAdminStudentOptions();
       } catch (error) {
         if (createdUser) {
           try { await deleteUser(createdUser); } catch { }

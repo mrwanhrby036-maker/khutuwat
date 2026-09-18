@@ -45,9 +45,8 @@ const YOUTUBE_ID_RE = /^[A-Za-z0-9_-]{11}$/;
 const DRIVE_ID_RE = /^[A-Za-z0-9_-]{10,120}$/;
 const GUMLET_ID_RE = /^[A-Za-z0-9_-]{8,160}$/;
 const DOC_ID_RE = /^[A-Za-z0-9_-]{1,160}$/;
-// الصور والفيديوهات يمكن أن تكون من مصادر خارجية، لكن HTTPS فقط.
-// إن أردت Allowlist صارمة لاحقًا يمكن تقييدها هنا وفي Firestore Rules.
-const ALLOWED_IMAGE_HOSTS = null;
+// الصور التي يرفعها الأدمن تأتي من ImgBB فقط.
+const ALLOWED_IMAGE_HOSTS = new Set(["i.ibb.co", "ibb.co"]);
  
 function limitText(value, max = 200) {
   return String(value ?? "").replace(/[\u0000-\u001F\u007F]/g, "").trim().slice(0, max);
@@ -998,9 +997,12 @@ window.addEventListener("message", (event) => {
   const payload = typeof event.data === "string"
     ? (() => { try { return JSON.parse(event.data); } catch { return event.data; } })()
     : event.data;
-  const messageText = typeof payload === "string"
-    ? payload
-    : JSON.stringify(payload || "");
+  let messageText = "";
+  if (typeof payload === "string") {
+    messageText = payload;
+  } else {
+    try { messageText = JSON.stringify(payload || ""); } catch { return; }
+  }
   const youtubeEnded = payload?.event === "infoDelivery"
     && Number(payload?.info?.playerState) === 0;
   const ended = youtubeEnded || /(ended|completed|complete|finished|finish|video_end|videoended)/i.test(messageText);

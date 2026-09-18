@@ -10,10 +10,15 @@ import {
   getFirestore,
   collection,
   getDocs,
+  getDoc,
+  doc,
+  setDoc,
+  serverTimestamp,
+  arrayUnion,
   query,
   orderBy
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
+ 
 // ===== إعدادات Firebase =====
 const firebaseConfig = {
   apiKey: "AIzaSyD1QN_bG2U_eNJ-lH5xlCZK4qjxvbvJRU4",
@@ -23,13 +28,13 @@ const firebaseConfig = {
   messagingSenderId: "456910182070",
   appId: "1:456910182070:web:2976378ec5e206a3867817"
 };
-
+ 
 // ===== تهيئة Firebase =====
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-
-
+ 
+ 
 // ===== Security helpers: treat Firestore/browser data as untrusted =====
 const MAX_TEXT = {
   title: 120,
@@ -45,40 +50,40 @@ const DOC_ID_RE = /^[A-Za-z0-9_-]{1,160}$/;
 // الصور والفيديوهات يمكن أن تكون من مصادر خارجية، لكن HTTPS فقط.
 // إن أردت Allowlist صارمة لاحقًا يمكن تقييدها هنا وفي Firestore Rules.
 const ALLOWED_IMAGE_HOSTS = null;
-
+ 
 function limitText(value, max = 200) {
   return String(value ?? "").replace(/[\u0000-\u001F\u007F]/g, "").trim().slice(0, max);
 }
-
+ 
 function safeInt(value, fallback = 1, min = 0, max = 9999) {
   const n = Number(value);
   if (!Number.isInteger(n) || n < min || n > max) return fallback;
   return n;
 }
-
+ 
 function safePercent(value) {
   const n = Number(value);
   if (!Number.isFinite(n)) return 50;
   return Math.min(100, Math.max(0, Math.round(n)));
 }
-
+ 
 function safeZoom(value) {
   const n = Number(value);
   if (!Number.isFinite(n)) return 100;
   return Math.min(220, Math.max(100, Math.round(n)));
 }
-
+ 
 function imageStyleAttr(imageRecord) {
   const x = safePercent(imageRecord?.imagePositionX);
   const y = safePercent(imageRecord?.imagePositionY);
   const zoom = safeZoom(imageRecord?.imageZoom);
   return `object-position:${x}% ${y}%; transform:scale(${zoom / 100});`;
 }
-
+ 
 function isSafeDocId(id) {
   return DOC_ID_RE.test(String(id ?? ""));
 }
-
+ 
 function safeUrl(value, { hosts = null, allowPath = () => true } = {}) {
   const raw = String(value ?? "").trim();
   if (!raw || raw.length > 2048) return "";
@@ -94,11 +99,11 @@ function safeUrl(value, { hosts = null, allowPath = () => true } = {}) {
     return "";
   }
 }
-
+ 
 function safeImageUrl(value) {
   return safeUrl(value, { hosts: ALLOWED_IMAGE_HOSTS });
 }
-
+ 
 function sanitizeCourse(raw, id = "") {
   return {
     id: String(id || raw?.id || ""),
@@ -115,7 +120,7 @@ function sanitizeCourse(raw, id = "") {
     loadError: Boolean(raw?.loadError)
   };
 }
-
+ 
 function sanitizeVideo(raw, id = "") {
   return {
     id: String(id || raw?.id || ""),
@@ -130,11 +135,11 @@ function sanitizeVideo(raw, id = "") {
     imageZoom: safeZoom(raw?.imageZoom)
   };
 }
-
+ 
 function attr(value) {
   return escapeHtml(String(value ?? ""));
 }
-
+ 
 function svgIcon(name, className = "") {
   const classes = `svg-icon ${className}`.trim();
   const common = `class="${classes}" viewBox="0 0 24 24" aria-hidden="true" focusable="false"`;
@@ -146,35 +151,70 @@ function svgIcon(name, className = "") {
     user: `<svg ${common}><circle cx="12" cy="8" r="3.4" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M5.5 20a6.5 6.5 0 0 1 13 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`,
     clock: `<svg ${common}><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 7.5V12l3 2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
     graduation: `<svg ${common}><path d="M3 8l9-4 9 4-9 4-9-4Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M7 10.2V15c0 1.5 2.2 3 5 3s5-1.5 5-3v-4.8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M21 8v5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>`,
-    star: `<svg ${common}><path d="M12 3.8l2.3 4.7 5.2.8-3.8 3.7.9 5.2-4.6-2.4-4.6 2.4.9-5.2-3.8-3.7 5.2-.8L12 3.8Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>`
+    star: `<svg ${common}><path d="M12 3.8l2.3 4.7 5.2.8-3.8 3.7.9 5.2-4.6-2.4-4.6 2.4.9-5.2-3.8-3.7 5.2-.8L12 3.8Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>`,
+    check: `<svg ${common}><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8 12.5l2.8 2.7 5.2-5.4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`
   };
   return icons[name] || "";
 }
-
-
+ 
+ 
 // ===== الكورسات بتتقرا من Firebase Firestore =====
 // إدارة الكورسات والفيديوهات تتم من لوحة الأدمن (ملف محلي غير منشور)
 // الحماية: بيانات الكورس العامة للعرض، والفيديوهات للمسجلين فقط (قواعد Firestore)
 let COURSES = [];
+let coursesLoaded = false; // false = لسه بيتحمل من Firestore (نعرض سكيلتون)، true = وصل الرد (فاضي أو فيه كورسات)
 // ===== المتغيرات العامة =====
 let currentUser = null;
 let sections = ["home", "courses", "features"];
 let currentSectionIndex = 0;
 let pendingCourseId = null;
+let freshLogin = false; // true فقط لو المستخدم ضغط "دخول" الآن (مش استعادة جلسة قديمة)
 
+// ===== نظام تقدم الطالب =====
+// userProgress = { courses: { [courseId]: { completedVideoIds: [] } } } — null للمشاهد غير المسجل
+let userProgress = null;
+let activeCompletionWatcher = null; // مستمعات "انتهى الفيديو" — بتتنضف عند التنقل بين الشاشات
+ 
+// ===== إخفاء شيمر تحميل الثمبنيلز (بديل عن onload/onerror الـ inline عشان يشتغل مع CSP صارم) =====
+// load/error مش بيعملوا bubble على <img>، فلازم نستخدم capture phase على مستوى الـ document
+document.addEventListener(
+  "load",
+  (e) => {
+    const img = e.target;
+    if (img?.tagName === "IMG") {
+      const wrap = img.closest(".thumb-loading");
+      if (wrap) wrap.classList.replace("thumb-loading", "thumb-loaded");
+    }
+  },
+  true
+);
+ 
+document.addEventListener(
+  "error",
+  (e) => {
+    const img = e.target;
+    if (img?.tagName === "IMG") {
+      const wrap = img.closest(".thumb-loading");
+      if (wrap) wrap.classList.remove("thumb-loading");
+    }
+  },
+  true
+);
+ 
 // ===== بداية التشغيل =====
 window.addEventListener("load", () => {
   createParticles();
   renderCourseShowcase();
   loadCoursesFromFirestore();
   runIntro();
+  updateScrollProgress();
 });
-
+ 
 // ===== مقدمة الفضاء الذهبي 3D (من 0 إلى 6 ثواني) =====
 const INTRO_MS = 6000;
 let introDone = false;
 let introRAF = null;
-
+ 
 function revealPlatform() {
   if (introDone) return;
   introDone = true;
@@ -188,7 +228,7 @@ function revealPlatform() {
   document.body.style.overflow = "";
   initObserver();
 }
-
+ 
 function runIntro() {
   const intro = document.getElementById("intro3d");
   if (!intro) {
@@ -199,13 +239,13 @@ function runIntro() {
   document
     .getElementById("introSkipBtn")
     ?.addEventListener("click", revealPlatform);
-
+ 
   // احترام تفضيل تقليل الحركة في المتصفح
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
     revealPlatform();
     return;
   }
-
+ 
   // أمان: لو حصل أي خطأ في المقدمة → المنصة تظهر عادي
   try {
     Promise.race([
@@ -221,10 +261,10 @@ function runIntro() {
   } catch (e) {
     console.error(e);
   }
-
+ 
   setTimeout(revealPlatform, INTRO_MS);
 }
-
+ 
 // عيّنات نقاط من نص العنوان عشان الجزيئات تكوّنه (مع حلقة احتياطية)
 function sampleTitleTargets() {
   const pts = [];
@@ -245,7 +285,7 @@ function sampleTitleTargets() {
         if (data[(y * w + x) * 4 + 3] > 130)
           pts.push({ x: x - w / 2, y: y - h / 2 });
   } catch (e) {}
-
+ 
   if (pts.length < 40) {
     pts.length = 0;
     for (let i = 0; i < 260; i++) {
@@ -259,14 +299,14 @@ function sampleTitleTargets() {
   }
   return pts.slice(0, window.innerWidth < 600 ? 220 : 380);
 }
-
+ 
 function startIntroCanvas() {
   const cv = document.getElementById("introCanvas");
   if (!cv) return;
   const ctx = cv.getContext("2d");
   const DPR = Math.min(window.devicePixelRatio || 1, 2);
   let W = window.innerWidth, H = window.innerHeight;
-
+ 
   function resize() {
     W = window.innerWidth;
     H = window.innerHeight;
@@ -278,13 +318,13 @@ function startIntroCanvas() {
   }
   resize();
   window.addEventListener("resize", resize);
-
+ 
   const GOLD = ["255,215,0", "255,165,0", "255,229,92", "255,255,255"];
   const rnd = (a, b) => a + Math.random() * (b - a);
   const pick = () => GOLD[(Math.random() * GOLD.length) | 0];
   const t0 = performance.now();
   const FLY_START = 1200, HOLD_END = 5400;
-
+ 
   // غبار خلفي بعمق (بارالاكس) بيتحرك على مهله
   const dust = Array.from(
     { length: Math.round((W * H) / 16000) + 40 },
@@ -299,7 +339,7 @@ function startIntroCanvas() {
       c: pick()
     })
   );
-
+ 
   // جزيئات التكوين: بتنطلق من أطراف الفضاء نحو عيّنات نص العنوان
   const formers = sampleTitleTargets().map((t) => {
     const a = Math.random() * Math.PI * 2;
@@ -316,15 +356,15 @@ function startIntroCanvas() {
       c: pick()
     };
   });
-
+ 
   const ease = (p) =>
     p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
-
+ 
   function frame(now) {
     if (introDone) return;
     const t = now - t0;
     ctx.clearRect(0, 0, W, H);
-
+ 
     // الغبار الخلفي
     for (const p of dust) {
       p.x += p.vx * p.z * 2;
@@ -338,7 +378,7 @@ function startIntroCanvas() {
       ctx.arc(p.x, p.y, p.r * p.z, 0, 7);
       ctx.fill();
     }
-
+ 
     // جزيئات التكوين: طيران ← تجمع ولمعان ← تحرر
     for (const p of formers) {
       const raw = (t - FLY_START - p.delay) / p.d;
@@ -368,7 +408,7 @@ function startIntroCanvas() {
       ctx.arc(x, y, sz, 0, 7);
       ctx.fill();
     }
-
+ 
     // نبضة حلقة ذهبية عند لحظة اللمعة
     if (t > 4500 && t < 5200) {
       const k = (t - 4500) / 700;
@@ -378,12 +418,12 @@ function startIntroCanvas() {
       ctx.arc(W / 2, H * 0.47, 60 + k * Math.max(W, H) * 0.55, 0, 7);
       ctx.stroke();
     }
-
+ 
     introRAF = requestAnimationFrame(frame);
   }
   introRAF = requestAnimationFrame(frame);
 }
-
+ 
 function updateCurrentSection() {
   const pos = window.scrollY + 150;
   for (let i = 0; i < sections.length; i++) {
@@ -398,7 +438,7 @@ function updateCurrentSection() {
     }
   }
 }
-
+ 
 window.addEventListener("scroll", () => {
   updateCurrentSection();
   const nav = document.getElementById("navbar");
@@ -407,32 +447,121 @@ window.addEventListener("scroll", () => {
     .getElementById("scrollTopBtn")
     .classList.toggle("visible", window.scrollY > 400);
   updateActiveLink();
+  updateScrollProgress();
 });
-
+ 
+// ===== شريط تقدم القراءة =====
+function updateScrollProgress() {
+  const bar = document.getElementById("scrollProgressBar");
+  if (!bar) return;
+  const doc = document.documentElement;
+  const scrollableHeight = doc.scrollHeight - doc.clientHeight;
+  const percent = scrollableHeight > 0 ? (window.scrollY / scrollableHeight) * 100 : 0;
+  bar.style.width = `${Math.min(100, Math.max(0, percent))}%`;
+}
+ 
+// ===== الزر العائم للوصول السريع =====
+const fabWrap = document.getElementById("fabWrap");
+const fabMainBtn = document.getElementById("fabMainBtn");
+ 
+function closeFab() {
+  fabWrap?.classList.remove("open");
+  fabMainBtn?.setAttribute("aria-expanded", "false");
+}
+ 
+fabMainBtn?.addEventListener("click", () => {
+  const isOpen = fabWrap?.classList.toggle("open");
+  fabMainBtn.setAttribute("aria-expanded", isOpen ? "true" : "false");
+});
+ 
+document.addEventListener("click", (e) => {
+  if (fabWrap?.classList.contains("open") && !fabWrap.contains(e.target)) {
+    closeFab();
+  }
+});
+ 
+document.getElementById("fabLectureItem")?.addEventListener("click", () => {
+  closeFab();
+});
+ 
 // ===== دالة مساعدة =====
 function escapeHtml(t) {
   const d = document.createElement("div");
   d.textContent = t;
   return d.innerHTML;
 }
-
+ 
 // ===== أيقونة/صورة الكورس: بتعرض imageUrl لو موجودة، وإلا إيموجي افتراضي =====
 // (الكورسات القديمة كانت بتتخزن بحقل icon، دلوقتي بتتخزن بحقل imageUrl)
+// أثناء تحميل الصورة بتتعرض شيمر سكيلتون وبتختفي أول ما الصورة توصل (onload)
 function courseThumbHtml(c) {
   const imageUrl = safeImageUrl(c?.imageUrl);
   return imageUrl
-    ? `<span class="course-thumb-frame"><img class="course-thumb-img" src="${attr(imageUrl)}" alt="" style="${attr(imageStyleAttr(c))}" loading="lazy" referrerpolicy="no-referrer"></span>`
+    ? `<span class="course-thumb-frame thumb-loading"><img class="course-thumb-img" src="${attr(imageUrl)}" alt="" style="${attr(imageStyleAttr(c))}" loading="lazy" referrerpolicy="no-referrer"></span>`
     : svgIcon("book", "svg-icon-large");
 }
-
+ 
 // ===== صورة الدرس: بتعرض صورة لو موجودة، وإلا مربع افتراضي =====
 function lessonThumbHtml(v) {
   const imageUrl = safeImageUrl(v?.imageUrl);
   return imageUrl
-    ? `<div class="lesson-thumb lesson-thumb-imgbox"><img src="${attr(imageUrl)}" alt="" style="${attr(imageStyleAttr(v))}" loading="lazy" referrerpolicy="no-referrer"></div>`
+    ? `<div class="lesson-thumb lesson-thumb-imgbox thumb-loading"><img src="${attr(imageUrl)}" alt="" style="${attr(imageStyleAttr(v))}" loading="lazy" referrerpolicy="no-referrer"></div>`
     : `<div class="lesson-thumb">${svgIcon("play", "svg-icon-lesson")}<small>شاهد</small></div>`;
 }
-
+ 
+// ===== قوالب سكيلتون اللودينج (كروت الكورسات / بطاقات الاختيار / صفوف الدروس) =====
+function skeletonCourseCards(count = 3) {
+  return Array.from(
+    { length: count },
+    () => `
+        <div class="skel-card">
+          <div class="skel skel-badge"></div>
+          <div class="skel skel-icon"></div>
+          <div class="skel skel-title"></div>
+          <div class="skel skel-text"></div>
+          <div class="skel skel-text short"></div>
+          <div class="skel skel-meta"></div>
+          <div class="skel skel-btn"></div>
+        </div>`
+  ).join("");
+}
+ 
+function skeletonPickCards(count = 3) {
+  return (
+    `<div class="ca-grid">` +
+    Array.from(
+      { length: count },
+      () => `
+        <div class="skel-card">
+          <div class="skel skel-icon" style="height:90px;"></div>
+          <div class="skel skel-title"></div>
+          <div class="skel skel-text"></div>
+          <div class="skel skel-meta"></div>
+          <div class="skel skel-btn"></div>
+        </div>`
+    ).join("") +
+    `</div>`
+  );
+}
+ 
+function skeletonLessonRows(count = 4) {
+  return (
+    `<div class="lesson-list">` +
+    Array.from(
+      { length: count },
+      () => `
+        <div class="skel-lesson-row">
+          <div class="skel skel-lesson-thumb"></div>
+          <div class="skel-lesson-info">
+            <div class="skel skel-lesson-title"></div>
+            <div class="skel skel-lesson-meta"></div>
+          </div>
+        </div>`
+    ).join("") +
+    `</div>`
+  );
+}
+ 
 // ===== تحويل لينكات الفيديو لصيغة التشغيل (يوتيوب / درايف) =====
 function safeVideoUrl(url) {
   return safeUrl(url, {
@@ -447,7 +576,7 @@ function safeVideoUrl(url) {
     }
   });
 }
-
+ 
 // ===== تحويل لينكات الفيديو لصيغة التشغيل (يوتيوب / درايف / Gumlet) =====
 function toEmbedUrl(url) {
   const safe = safeVideoUrl(url);
@@ -456,7 +585,7 @@ function toEmbedUrl(url) {
     const u = new URL(safe);
     const h = u.hostname.toLowerCase().replace(/^www\./, "");
     let videoId = "";
-
+ 
     if (h === "youtu.be") {
       videoId = u.pathname.slice(1);
       return YOUTUBE_ID_RE.test(videoId) ? `https://www.youtube.com/embed/${videoId}` : null;
@@ -491,16 +620,345 @@ async function loadCoursesFromFirestore() {
       query(collection(db, "courses"), orderBy("order"))
     );
     COURSES = snap.docs.map((d) => sanitizeCourse({ ...d.data(), videos: null }, d.id));
-    renderCourseShowcase();
   } catch (e) {
     console.error("تعذر تحميل الكورسات من Firestore:", e);
+    COURSES = [];
+  } finally {
+    coursesLoaded = true;
+    renderCourseShowcase();
+    // لو المستخدم فاتح منطقة الكورسات وقاعد يستنى (سكيلتون) ولسه في شاشة الاختيار → حدّثها كمان
+    const area = document.getElementById("courseArea");
+    if (area?.classList.contains("open") && caState.courseIdx === null) {
+      renderCoursesList();
+    }
   }
+}
+ 
+// ===== نظام تقدم الطالب: تحميل وحفظ التقدم في Firestore =====
+async function loadUserProgress() {
+  if (!currentUser) {
+    userProgress = null;
+    return;
+  }
+  try {
+    const snap = await getDoc(doc(db, "userProgress", currentUser.uid));
+    const data = snap.exists() ? snap.data() || {} : {};
+    const courses = data.courses && typeof data.courses === "object" ? data.courses : {};
+    userProgress = { courses: {} };
+    for (const courseId of Object.keys(courses)) {
+      const entry = courses[courseId] || {};
+      userProgress.courses[courseId] = {
+        completedVideoIds: Array.isArray(entry.completedVideoIds)
+          ? entry.completedVideoIds.filter((id) => isSafeDocId(id))
+          : []
+      };
+    }
+  } catch (e) {
+    console.error("تعذر تحميل تقدم الطالب:", e?.code || e?.message || e);
+    userProgress = { courses: {} };
+  }
+}
+
+function getCompletedSet(courseId) {
+  const entry = userProgress?.courses?.[courseId];
+  return new Set(Array.isArray(entry?.completedVideoIds) ? entry.completedVideoIds : []);
+}
+
+// معلومات التقدم للكورس (done / total / percent)
+function courseProgressInfo(courseId, totalCount) {
+  const total = Number(totalCount ?? 0);
+  if (!total) return null;
+  const done = Math.min(getCompletedSet(courseId).size, total);
+  const percent = Math.min(100, Math.round((done / total) * 100));
+  return { done, total, percent };
+}
+
+function progressBarHtml(info) {
+  return `
+      <div class="progress-track"><div class="progress-fill" style="width:${info.percent}%"></div></div>
+      <span class="progress-label${info.percent === 100 ? " done" : ""}">${info.percent === 100 ? "🎉 كمّلت الكورس!" : `أكملت ${info.done} من ${info.total} (${info.percent}%)`}</span>`;
+}
+
+// بار التقدم اللي يظهر على كروت الكورسات (للمسجلين فقط)
+function courseCardProgressHtml(courseId, videoCount) {
+  if (!currentUser || !userProgress) return "";
+  const info = courseProgressInfo(courseId, videoCount);
+  return info ? `<div class="course-card-progress">${progressBarHtml(info)}</div>` : "";
+}
+
+async function markLessonCompleted(courseId, videoId) {
+  if (!currentUser || !userProgress) return;
+  if (!isSafeDocId(courseId) || !isSafeDocId(videoId)) return;
+  const entry = userProgress.courses[courseId] || (userProgress.courses[courseId] = { completedVideoIds: [] });
+  if (entry.completedVideoIds.includes(videoId)) return;
+
+  // تحسين فوري للواجهة ثم الحفظ (ورجوع لو الحفظ فشل)
+  entry.completedVideoIds.push(videoId);
+  try {
+    await setDoc(
+      doc(db, "userProgress", currentUser.uid),
+      {
+        email: limitText(currentUser.email || "", 254),
+        updatedAt: serverTimestamp(),
+        [`courses.${courseId}.completedVideoIds`]: arrayUnion(videoId)
+      },
+      { merge: true }
+    );
+    showToast("success", "✅ أحسنت!", "تم تسجيل إتمام الدرس — كمّل رحلتك 💪");
+    refreshProgressUI();
+  } catch (e) {
+    entry.completedVideoIds = entry.completedVideoIds.filter((id) => id !== videoId);
+    console.error("تعذر حفظ التقدم:", e?.code || e?.message || e);
+    showToast("error", "⚠️ خطأ", "تعذر حفظ تقدمك.. بص على النت وجرب تكمل بعدين");
+  }
+}
+
+// إعادة رسم أجزاء الواجهة اللي بتعرض التقدم (من غير ما نلمس مشغل فيديو شغال)
+function refreshProgressUI() {
+  renderCourseShowcase();
+  const area = document.getElementById("courseArea");
+  if (!area?.classList.contains("open")) return;
+  if (caState.courseIdx === null) {
+    renderCoursesList();
+    return;
+  }
+  if (caState.videoIdx === null) {
+    paintLessons(caState.courseIdx);
+    return;
+  }
+  // جوه شاشة الدرس: بنحدّث شارة الحالة فقط عشان الفيديو ميتقطعش
+  const pill = document.getElementById("lessonStatusPill");
+  if (pill) {
+    pill.className = "lesson-status done";
+    pill.innerHTML = `${svgIcon("check")} تم إتمام هذا الدرس`;
+  }
+}
+
+// ===== تتبّع نهاية الفيديو لتعليم الدرس مكتمل تلقائيًا =====
+function cleanupCompletionWatcher() {
+  if (activeCompletionWatcher) {
+    try {
+      activeCompletionWatcher.destroy();
+    } catch (e) {
+      console.error(e);
+    }
+    activeCompletionWatcher = null;
+  }
+}
+
+function embedProviderOf(embedUrl) {
+  try {
+    const u = new URL(embedUrl);
+    const h = u.hostname.toLowerCase();
+    if (h.endsWith("youtube.com")) return "youtube";
+    if (h === "play.gumlet.io" || h.endsWith("gumlet.tv")) return "gumlet";
+    if (h.endsWith("drive.google.com")) return "drive";
+  } catch {
+    /* تجاهل */
+  }
+  return null;
+}
+
+// YouTube IFrame API — بتتحمل مرة واحدة عند أول درس يوتيوب
+let ytApiPromise = null;
+function loadYouTubeApi() {
+  if (window.YT?.Player) return Promise.resolve();
+  if (ytApiPromise) return ytApiPromise;
+  ytApiPromise = new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error("YT_API_TIMEOUT")), 10000);
+    window.onYouTubeIframeAPIReady = () => {
+      clearTimeout(timer);
+      resolve();
+    };
+    const s = document.createElement("script");
+    s.src = "https://www.youtube.com/iframe_api";
+    s.onerror = () => {
+      clearTimeout(timer);
+      ytApiPromise = null;
+      reject(new Error("YT_API_LOAD_FAILED"));
+    };
+    document.head.appendChild(s);
+  });
+  return ytApiPromise;
+}
+
+// Player.js (بروتوكول postMessage) — Gumlet بيدعمه رسميًا عبر مكتبته
+let playerJsPromise = null;
+function loadPlayerJsApi() {
+  if (window.playerjs?.Player) return Promise.resolve();
+  if (playerJsPromise) return playerJsPromise;
+  playerJsPromise = new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = "https://cdn.jsdelivr.net/npm/@gumlet/player.js@3.0/dist/main.global.js";
+    s.onload = () => resolve();
+    s.onerror = () => {
+      playerJsPromise = null;
+      reject(new Error("PLAYERJS_LOAD_FAILED"));
+    };
+    document.head.appendChild(s);
+  });
+  return playerJsPromise;
+}
+
+function attachCompletionWatcher(course, lesson, embedUrl) {
+  cleanupCompletionWatcher();
+  if (!currentUser) return;
+  const onDone = () => markLessonCompleted(course.id, lesson.id);
+  const box = document.getElementById("caVideoBox");
+  if (!box) return;
+
+  // 1) فيديو مباشر <video> → حدث ended الموثوق
+  const videoEl = box.querySelector("video");
+  if (videoEl) {
+    const onEnded = () => onDone();
+    videoEl.addEventListener("ended", onEnded);
+    activeCompletionWatcher = {
+      destroy() {
+        videoEl.removeEventListener("ended", onEnded);
+      }
+    };
+    return;
+  }
+
+  const iframe = box.querySelector("iframe");
+  if (!iframe || !embedUrl) return;
+  const provider = embedProviderOf(embedUrl);
+
+  // 2) يوتيوب → IFrame API (onStateChange = 0 يعني انتهى)
+  if (provider === "youtube") {
+    let player = null;
+    let destroyed = false;
+    try {
+      const src = new URL(iframe.src);
+      src.searchParams.set("enablejsapi", "1");
+      if (location.protocol === "http:" || location.protocol === "https:") {
+        src.searchParams.set("origin", location.origin);
+      }
+      iframe.src = src.toString();
+    } catch {
+      /* تجاهل — الفيديو هيفضل شغال من غير تتبع */
+    }
+    loadYouTubeApi()
+      .then(() => {
+        if (destroyed || !window.YT?.Player) return;
+        player = new window.YT.Player(iframe, {
+          events: {
+            onStateChange: (e) => {
+              if (e?.data === 0) onDone(); // 0 = ENDED
+            }
+          }
+        });
+      })
+      .catch((e) => console.warn("تعذر تحميل YouTube API:", e));
+    activeCompletionWatcher = {
+      destroy() {
+        destroyed = true;
+        try {
+          player?.destroy();
+        } catch {
+          /* تجاهل */
+        }
+      }
+    };
+    return;
+  }
+
+  // 3) Gumlet → مكتبة @gumlet/player.js (حدث ended)
+  if (provider === "gumlet") {
+    let player = null;
+    let destroyed = false;
+    loadPlayerJsApi()
+      .then(() => {
+        if (destroyed || !window.playerjs?.Player) return;
+        player = new window.playerjs.Player(iframe);
+        player.on("ended", onDone);
+      })
+      .catch((e) => console.warn("تعذر تحميل Player.js:", e));
+    activeCompletionWatcher = {
+      destroy() {
+        destroyed = true;
+        try {
+          player?.off?.("ended", onDone);
+        } catch {
+          /* تجاهل */
+        }
+      }
+    };
+    return;
+  }
+
+  // 4) مشغلات بتتتبعش (زي جوجل درايف) → تعليم زمني: مدة المشاهدة الفعلية للصفحة
+  attachTimeBasedWatcher(onDone, parseDurationMs(lesson.duration));
+}
+
+// بتتحسب بس لما التاب ظاهر فعلاً (مش في الخلفية) والدرس لسه مفتوح
+function attachTimeBasedWatcher(onDone, requiredMs) {
+  let watchedMs = 0;
+  let lastTick = Date.now();
+  const timer = setInterval(() => {
+    if (!activeCompletionWatcher) {
+      clearInterval(timer);
+      return;
+    }
+    const now = Date.now();
+    const delta = now - lastTick;
+    lastTick = now;
+    const stillWatching =
+      document.visibilityState === "visible" &&
+      document.getElementById("caVideoBox") !== null;
+    if (stillWatching) {
+      watchedMs += delta;
+      if (watchedMs >= requiredMs) {
+        clearInterval(timer);
+        onDone();
+      }
+    }
+  }, 1000);
+  activeCompletionWatcher = {
+    destroy() {
+      clearInterval(timer);
+    }
+  };
+}
+
+// تحويل نص المدة ("9 دقائق" / "٤٥ ثانية" / "1:30") لملي ثانية — افتراضي 8 دقائق
+function parseDurationMs(text) {
+  const DEFAULT_MS = 8 * 60 * 1000;
+  let t = String(text ?? "").trim();
+  if (!t) return DEFAULT_MS;
+  // أرقام عربية-هندية → إنجليزية
+  t = t.replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d)));
+  // صيغة mm:ss أو hh:mm:ss
+  const clock = t.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+  if (clock) {
+    const h = clock[3] ? parseInt(clock[1], 10) : 0;
+    const m = clock[3] ? parseInt(clock[2], 10) : parseInt(clock[1], 10);
+    const s = parseInt(clock[3] || clock[2], 10) || 0;
+    return clampDurationMs((h * 3600 + m * 60 + s) * 1000, DEFAULT_MS);
+  }
+  let ms = 0;
+  const hours = t.match(/(\d+(?:\.\d+)?)\s*(?:ساعات?|ساعه|hours?|hrs?|h)/i);
+  const mins = t.match(/(\d+(?:\.\d+)?)\s*(?:دقيقة|دقيقه|دقائق|minutes?|mins?|m)/i);
+  const secs = t.match(/(\d+(?:\.\d+)?)\s*(?:ثانية|ثانيه|ثواني|seconds?|secs?|s)/i);
+  if (hours) ms += parseFloat(hours[1]) * 3600000;
+  if (mins) ms += parseFloat(mins[1]) * 60000;
+  if (secs) ms += parseFloat(secs[1]) * 1000;
+  return clampDurationMs(ms || DEFAULT_MS, DEFAULT_MS);
+}
+
+function clampDurationMs(ms, defaultMs) {
+  if (!Number.isFinite(ms) || ms <= 0) return defaultMs;
+  return Math.min(ms, 2 * 60 * 60 * 1000); // سقف ساعتين
 }
 
 // ===== عارضة الكورسات المقفولة (في قسم الكورسات) =====
 function renderCourseShowcase() {
   const wrap = document.getElementById("courseCards");
   if (!wrap) return;
+  if (!coursesLoaded) {
+    wrap.innerHTML = skeletonCourseCards(3);
+    return;
+  }
   if (!COURSES.length) {
     wrap.innerHTML =
       `<div class="ca-empty" style="grid-column:1/-1;">${svgIcon("book")} الكورسات قريباً.. تابعونا!</div>`;
@@ -514,6 +972,7 @@ function renderCourseShowcase() {
           <h3 class="course-lock-title">${escapeHtml(c.title)}</h3>
           <p class="course-lock-desc">${escapeHtml(c.short)}</p>
           <div class="course-lock-meta">${svgIcon("video")} ${c.videoCount ?? 0} فيديو</div>
+          ${courseCardProgressHtml(c.id, c.videoCount)}
           <button class="btn btn-gold course-enter-btn" data-course="${attr(c.id)}">
             <i class="fas fa-lock-open"></i>دخول الكورس
           </button>
@@ -524,7 +983,7 @@ function renderCourseShowcase() {
     btn.addEventListener("click", () => enterCourse(btn.dataset.course));
   });
 }
-
+ 
 function enterCourse(courseId) {
   if (!currentUser) {
     // نتذكر الكورس المطلوب، وبعد تسجيل الدخول ندخل عليه مباشرة
@@ -539,11 +998,11 @@ function enterCourse(courseId) {
   }
   openCourseArea(false, courseId);
 }
-
+ 
 // ===== منطقة الكورسات الخاصة (معزولة عن المنصة) =====
 // حالة التنقل جوه المنطقة: قائمة الكورسات ← دروس الكورس ← تشغيل فيديو
 const caState = { demo: false, courseIdx: null, videoIdx: null };
-
+ 
 function openCourseArea(demo = false, courseId = null) {
   const area = document.getElementById("courseArea");
   if (!area) return;
@@ -551,7 +1010,7 @@ function openCourseArea(demo = false, courseId = null) {
   area.classList.add("open");
   document.body.style.overflow = "hidden";
   area.scrollTop = 0;
-
+ 
   // لو طلب كورس محدد → ندخل على دروسه مباشرة بدل قائمة الكورسات
   if (courseId) {
     const idx = COURSES.findIndex((c) => c.id === courseId);
@@ -562,8 +1021,9 @@ function openCourseArea(demo = false, courseId = null) {
   }
   renderCoursesList();
 }
-
+ 
 function caRender(html) {
+  cleanupCompletionWatcher();
   const area = document.getElementById("courseArea");
   const main = document.getElementById("caMain");
   if (!area || !main) return;
@@ -579,11 +1039,15 @@ function caRender(html) {
       </div>${html}`;
   area.scrollTop = 0;
 }
-
+ 
 // 1) شاشة اختيار الكورس
 function renderCoursesList() {
   caState.courseIdx = null;
   caState.videoIdx = null;
+  if (!coursesLoaded) {
+    caRender(skeletonPickCards(3));
+    return;
+  }
   const html = COURSES.length
     ? `<div class="ca-grid">` +
       COURSES.map(
@@ -593,6 +1057,7 @@ function renderCoursesList() {
           <h3>${escapeHtml(c.title)}</h3>
           <p>${escapeHtml(c.short)}</p>
           <div class="ca-pick-meta">${svgIcon("video")} ${c.videoCount ?? 0} فيديو</div>
+          ${courseCardProgressHtml(c.id, c.videoCount)}
           <button class="btn btn-gold ca-open-course" data-idx="${i}">عرض الدروس</button>
         </div>`
       ).join("") +
@@ -605,7 +1070,7 @@ function renderCoursesList() {
     )
   );
 }
-
+ 
 // 2) شاشة دروس الكورس (الفيديوهات بتتقرا من Firestore - للمسجلين فقط)
 function renderCourseLessons(idx) {
   const c = COURSES[idx];
@@ -613,15 +1078,13 @@ function renderCourseLessons(idx) {
   caState.courseIdx = idx;
   caState.videoIdx = null;
   if (!c.videos) {
-    caRender(
-      lessonsShell(c, '<div class="ca-empty">⏳ جاري تحميل الدروس...</div>')
-    );
+    caRender(lessonsShell(c, skeletonLessonRows(4)));
     loadLessons(idx);
     return;
   }
   paintLessons(idx);
 }
-
+ 
 async function loadLessons(idx) {
   const c = COURSES[idx];
   if (!c) return;
@@ -638,17 +1101,23 @@ async function loadLessons(idx) {
   }
   if (caState.courseIdx === idx) paintLessons(idx);
 }
-
+ 
 function lessonsShell(c, inner) {
+  const total = c.videos?.length ?? c.videoCount ?? 0;
+  const info = currentUser && userProgress ? courseProgressInfo(c.id, total) : null;
+  const progressHead = info
+    ? `<div class="ca-course-progress">${progressBarHtml(info)}</div>`
+    : "";
   return `
     <button class="ca-back">← كل الكورسات</button>
     <div class="ca-course">
       <h2 class="ca-course-title">${courseThumbHtml(c)} ${escapeHtml(c.title)}</h2>
       <p class="ca-course-desc">${escapeHtml(c.description)}</p>
+      ${progressHead}
       ${inner}
     </div>`;
 }
-
+ 
 function paintLessons(idx) {
   const c = COURSES[idx];
   if (!c) return;
@@ -659,23 +1128,27 @@ function paintLessons(idx) {
   } else if (!c.videos || !c.videos.length) {
     inner = '<div class="ca-empty">📭 لا توجد فيديوهات في الكورس ده لسه</div>';
   } else {
+    const completedIds = getCompletedSet(c.id);
     inner =
       '<div class="lesson-list">' +
       c.videos
         .map(
-          (v, i) => `
-          <div class="lesson-row" data-c="${idx}" data-v="${i}">
+          (v, i) => {
+            const isDone = completedIds.has(v.id);
+            return `
+          <div class="lesson-row${isDone ? " done" : ""}" data-c="${idx}" data-v="${i}">
             ${lessonThumbHtml(v)}
             <div class="lesson-info">
               <div class="lesson-title">
-                <span class="lesson-num">${i + 1}</span>${escapeHtml(v.title)}
+                <span class="lesson-num${isDone ? " done" : ""}">${isDone ? svgIcon("check") : i + 1}</span>${escapeHtml(v.title)}
               </div>
               <div class="lesson-meta">
                 <span>${svgIcon("user")} ${escapeHtml(v.instructor || "غير محدد")}</span>
                 <span>${svgIcon("clock")} ${escapeHtml(v.duration || "—")}</span>
               </div>
             </div>
-          </div>`
+          </div>`;
+          }
         )
         .join("") +
       '</div>';
@@ -690,15 +1163,17 @@ function paintLessons(idx) {
     )
   );
 }
-
-
+ 
+ 
+// 3) شاشة تشغيل الدرس — بتعرض الشاشة فورًا بحالة تحميل، وبعدين تجيب رابط الفيديو
+// من السيرفر (مش من Firestore مباشرة، لأن الـ rules بتمنع قراءته من العميل تمامًا)
 // 3) شاشة تشغيل الدرس
 function openLesson(ci, vi) {
   const c = COURSES[ci];
   const v = c?.videos?.[vi];
   if (!c || !v) return;
   caState.videoIdx = vi;
-
+ 
   let embed = toEmbedUrl(v.videoUrl);
   if (
     embed &&
@@ -713,11 +1188,12 @@ function openLesson(ci, vi) {
   }
   const directVideo = safeVideoUrl(v.videoUrl);
   const player = embed
-    ? `<iframe src="${attr(embed)}" title="${attr(v.title)}" referrerpolicy="origin" sandbox="allow-scripts allow-same-origin allow-presentation" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen></iframe>`
+    ? `<iframe src="${attr(embed)}" title="${attr(v.title)}" referrerpolicy="origin" sandbox="allow-scripts allow-same-origin allow-presentation" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen"></iframe>`
     : directVideo
       ? `<video controls controlsList="nodownload" preload="metadata" src="${attr(directVideo)}"></video>`
       : `<div class="ca-empty">⚠️ رابط الفيديو غير مسموح أو غير صالح</div>`;
-
+ 
+  const isDone = getCompletedSet(c.id).has(v.id);
   const html = `
     <button class="ca-back">← دروس الكورس</button>
     <div class="ca-course">
@@ -725,6 +1201,9 @@ function openLesson(ci, vi) {
       <div class="lesson-meta" style="margin-bottom:15px;">
         <span>${svgIcon("user")} ${escapeHtml(v.instructor || "غير محدد")}</span>
         <span>${svgIcon("clock")} ${escapeHtml(v.duration || "—")}</span>
+      </div>
+      <div class="lesson-status${isDone ? " done" : ""}" id="lessonStatusPill">
+        ${isDone ? `${svgIcon("check")} تم إتمام هذا الدرس` : "👁️ التقدم بيتسجل تلقائيًا أثناء المشاهدة"}
       </div>
       <div class="ca-video" id="caVideoBox">${player}</div>
       <div class="ca-video-tools">
@@ -738,13 +1217,14 @@ function openLesson(ci, vi) {
   document
     .getElementById("caFsBtn")
     ?.addEventListener("click", toggleVideoFullscreen);
+  attachCompletionWatcher(c, v, embed);
 }
-
+ 
 // ===== ملء الشاشة لمشغل الفيديو =====
 function toggleVideoFullscreen() {
   const box = document.getElementById("caVideoBox");
   if (!box) return;
-
+ 
   const isFs =
     document.fullscreenElement || document.webkitFullscreenElement;
   if (isFs) {
@@ -753,7 +1233,7 @@ function toggleVideoFullscreen() {
     )?.call(document);
     return;
   }
-
+ 
   const fsEnabled =
     document.fullscreenEnabled || document.webkitFullscreenEnabled;
   if (!fsEnabled) {
@@ -764,7 +1244,7 @@ function toggleVideoFullscreen() {
     );
     return;
   }
-
+ 
   const req = box.requestFullscreen || box.webkitRequestFullscreen;
   if (req) {
     const p = req.call(box);
@@ -774,16 +1254,20 @@ function toggleVideoFullscreen() {
       );
   }
 }
-
+ 
 // ===== احتفال نجاح الدخول للكورسات =====
 let confettiRAF = null;
-
-function playEnterCelebration(courseId = null) {
+ 
+function showCelebration({ title, message, onDone } = {}) {
   const ov = document.getElementById("caCelebrate");
   if (!ov) {
-    openCourseArea(false, courseId);
+    onDone?.();
     return;
   }
+  const titleEl = document.getElementById("celebrateTitle");
+  const msgEl = document.getElementById("celebrateMsg");
+  if (titleEl && title) titleEl.textContent = title;
+  if (msgEl && message) msgEl.textContent = message;
   ov.classList.add("show");
   try {
     startConfetti();
@@ -793,11 +1277,33 @@ function playEnterCelebration(courseId = null) {
   setTimeout(() => {
     ov.classList.remove("show");
     stopConfetti();
-    openCourseArea(false, courseId);
-    showToast("success", "✅ أهلاً بيك!", "تم تسجيل الدخول بنجاح");
+    onDone?.();
   }, 2300);
 }
-
+ 
+function playEnterCelebration(courseId = null) {
+  showCelebration({
+    title: "🎉 أهلاً بيك من تاني!",
+    message: "تم فتح كورساتك الخاصة بنجاح.. بالتوفيق 💪",
+    onDone: () => {
+      openCourseArea(false, courseId);
+      showToast("success", "✅ أهلاً بيك!", "تم تسجيل الدخول بنجاح");
+    }
+  });
+}
+ 
+// ===== احتفال ترحيبي عام عند تسجيل الدخول للمنصة (بدون فتح كورس) =====
+function playWelcomeCelebration() {
+  const name = currentUser?.email ? currentUser.email.split("@")[0] : "";
+  showCelebration({
+    title: name ? `🎉 أهلاً بيك يا ${name}!` : "🎉 أهلاً بيك!",
+    message: "تم تسجيل دخولك بنجاح.. استمتع برحلتك التعليمية 💪",
+    onDone: () => {
+      showToast("success", "✅ أهلاً بيك!", "تم تسجيل الدخول بنجاح");
+    }
+  });
+}
+ 
 function startConfetti() {
   const cv = document.getElementById("celebrateCanvas");
   if (!cv) return;
@@ -807,7 +1313,7 @@ function startConfetti() {
   cv.width = W * DPR;
   cv.height = H * DPR;
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-
+ 
   const COLORS = ["#ffd700", "#ffa500", "#ffe55c", "#ffffff", "#42abff"];
   const parts = Array.from({ length: 150 }, () => {
     const a = Math.random() * Math.PI * 2;
@@ -826,7 +1332,7 @@ function startConfetti() {
     };
   });
   const t0 = performance.now();
-
+ 
   function frame(now) {
     const t = now - t0;
     ctx.clearRect(0, 0, W, H);
@@ -848,14 +1354,15 @@ function startConfetti() {
   }
   confettiRAF = requestAnimationFrame(frame);
 }
-
+ 
 function stopConfetti() {
   if (confettiRAF) cancelAnimationFrame(confettiRAF);
   const cv = document.getElementById("celebrateCanvas");
   if (cv) cv.getContext("2d").clearRect(0, 0, cv.width, cv.height);
 }
-
+ 
 function closeCourseArea() {
+  cleanupCompletionWatcher();
   const area = document.getElementById("courseArea");
   if (!area) return;
   area.classList.remove("open");
@@ -864,13 +1371,13 @@ function closeCourseArea() {
   const main = document.getElementById("caMain");
   if (main) main.innerHTML = "";
 }
-
+ 
 // ===== القائمة المنسدلة =====
 document.getElementById("hamburger")?.addEventListener("click", () => {
   document.getElementById("hamburger").classList.toggle("open");
   document.getElementById("navLinks").classList.toggle("open");
 });
-
+ 
 document.querySelectorAll(".nav-link").forEach((l) => {
   l.addEventListener("click", () => {
     document.getElementById("hamburger")?.classList.remove("open");
@@ -882,7 +1389,7 @@ document.querySelectorAll(".nav-link").forEach((l) => {
     }
   });
 });
-
+ 
 function updateActiveLink() {
   const secs = document.querySelectorAll("section[id]");
   const links = document.querySelectorAll(".nav-link");
@@ -894,11 +1401,11 @@ function updateActiveLink() {
     l.classList.toggle("active", l.getAttribute("href") === `#${cur}`);
   });
 }
-
+ 
 document.getElementById("scrollTopBtn")?.addEventListener("click", () => {
   window.scrollTo({ top: 0, behavior: "smooth" });
 });
-
+ 
 // ===== تأثيرات الظهور =====
 function initObserver() {
   const obs = new IntersectionObserver(
@@ -914,7 +1421,7 @@ function initObserver() {
   );
   document.querySelectorAll(".fade-up").forEach((el) => obs.observe(el));
 }
-
+ 
 // ===== الجسيمات =====
 function createParticles() {
   const c = document.getElementById("particles");
@@ -933,7 +1440,7 @@ function createParticles() {
     c.appendChild(p);
   }
 }
-
+ 
 // ===== دوال المصادقة =====
 function openAuthModal() {
   const m = document.getElementById("authModalOverlay");
@@ -941,18 +1448,18 @@ function openAuthModal() {
     console.error("❌ authModalOverlay مش موجود!");
     return;
   }
-
+ 
   m.style.display = "flex";
   m.classList.add("active");
   document.body.style.overflow = "hidden";
-
+ 
   const emailInput = document.getElementById("loginEmail");
   const passInput = document.getElementById("loginPassword");
   if (emailInput) emailInput.value = "";
   if (passInput) passInput.value = "";
   if (emailInput) emailInput.focus();
 }
-
+ 
 function closeAuthModal() {
   const m = document.getElementById("authModalOverlay");
   if (!m) return;
@@ -960,13 +1467,13 @@ function closeAuthModal() {
   m.classList.remove("active");
   document.body.style.overflow = "";
 }
-
+ 
 // ===== واجهة المستخدم حسب حالة الدخول =====
 function updateLoginUI() {
   const area = document.getElementById("userInfoArea");
   const out = document.getElementById("logoutBtnNav");
   const container = document.getElementById("heroBtnsContainer");
-
+ 
   if (currentUser) {
     if (area) {
       area.innerHTML = `<span id="userNameDisplay">${svgIcon("user")} ${escapeHtml(
@@ -998,7 +1505,7 @@ function updateLoginUI() {
     }
   }
 }
-
+ 
 // ===== مستمعي النوافذ =====
 document
   .getElementById("closeAuthModalBtn")
@@ -1012,7 +1519,7 @@ document.getElementById("caBackBtn")?.addEventListener("click", () => {
   closeCourseArea();
 });
 document.getElementById("caLogoutBtn")?.addEventListener("click", handleLogout);
-
+ 
 document
   .getElementById("loginSubmitBtn2")
   ?.addEventListener("click", handleLogin);
@@ -1021,11 +1528,11 @@ document
     if (e.key === "Enter") handleLogin();
   });
 });
-
+ 
 document.getElementById("notifyMeBtn")?.addEventListener("click", () => {
   showToast("info", "📢 قريباً!", "سيتم إضافة كورسات جديدة قريباً.. تابعونا!");
 });
-
+ 
 // 🧪 زرار المعاينة التجريبية المؤقت — هيتشال قبل النشر
 document.getElementById("demoCourseBtn")?.addEventListener("click", () => {
   openCourseArea(true);
@@ -1035,25 +1542,33 @@ document.getElementById("demoCourseBtn")?.addEventListener("click", () => {
     "ده شكل صفحة الكورس — تسجيل الدخول الحقيقي بيانات Firebase"
   );
 });
-
+ 
 document.getElementById("toastCloseBtn")?.addEventListener("click", closeToast);
-
+ 
 // ===== حالة تسجيل الدخول =====
-onAuthStateChanged(auth, (u) => {
+onAuthStateChanged(auth, async (u) => {
   currentUser = u ? { uid: u.uid, email: u.email || "" } : null;
   updateLoginUI();
 
+  // نظام التقدم: تحميل تقدم الطالب بعد الدخول (ومسحه بعد الخروج)
+  await loadUserProgress();
+  refreshProgressUI();
+ 
   if (u) {
     closeAuthModal();
-    // لو فتح تسجيل الدخول عشان يدخل كورس محدد → دخّله على طول
+    // لو فتح تسجيل الدخول عشان يدخل كورس محدد → دخّله على طول مع احتفال الكورس
     if (pendingCourseId) {
       const target = pendingCourseId;
       pendingCourseId = null;
       playEnterCelebration(target);
+    } else if (freshLogin) {
+      // تسجيل دخول عادي (مش عن طريق زرار كورس مقفول) → احتفال ترحيبي عام
+      playWelcomeCelebration();
     }
+    freshLogin = false;
   }
 });
-
+ 
 async function handleLogin() {
   const emailInput = document.getElementById("loginEmail");
   const passInput = document.getElementById("loginPassword");
@@ -1075,11 +1590,14 @@ async function handleLogin() {
   const btn = document.getElementById("loginSubmitBtn2");
   if (btn) {
     btn.disabled = true;
-    btn.textContent = "جاري الدخول...";
+    btn.innerHTML =
+      'جاري الدخول<span class="loading-dots" aria-hidden="true"><span></span><span></span><span></span></span>';
   }
+  freshLogin = true; // لازم تتحدد قبل النداء لأن onAuthStateChanged ممكن يشتغل قبل رجوع الـ await
   try {
     await signInWithEmailAndPassword(auth, email, pass);
   } catch (e) {
+    freshLogin = false; // فشل الدخول → إلغاء العلامة عشان ميتفعلش الاحتفال غلط
     if (e?.code === "auth/too-many-requests") {
       sessionStorage.setItem("loginLockUntil", String(Date.now() + 60_000));
     }
@@ -1091,7 +1609,7 @@ async function handleLogin() {
     }
   }
 }
-
+ 
 function loginErrorMessage(e) {
   const map = {
     "auth/invalid-credential": "البريد الإلكتروني أو كلمة المرور غير صحيحة",
@@ -1109,7 +1627,7 @@ function loginErrorMessage(e) {
   };
   return map[e?.code] || "حدث خطأ أثناء تسجيل الدخول.. جرب تاني";
 }
-
+ 
 async function handleLogout() {
   try {
     await signOut(auth);
@@ -1119,10 +1637,10 @@ async function handleLogout() {
     showToast("error", "⚠️ خطأ", "حدث خطأ أثناء تسجيل الخروج");
   }
 }
-
+ 
 // ===== رسائل التنبيه =====
 let toastTimer = null;
-
+ 
 function showToast(type, title, msg) {
   const t = document.getElementById("toast");
   const icon = document.getElementById("toastIcon");
@@ -1145,11 +1663,11 @@ function showToast(type, title, msg) {
   t.classList.add("show");
   toastTimer = setTimeout(() => closeToast(), 4000);
 }
-
+ 
 function closeToast() {
   document.getElementById("toast")?.classList.remove("show");
 }
-
+ 
 // ===== روابط التنقل =====
 document.querySelectorAll('a[href^="#"]').forEach((l) => {
   l.addEventListener("click", (e) => {

@@ -1,20 +1,136 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
 
-    // بيانات الكورس (العنوان والوصف) — للعرض للجميع
-    // الفيديوهات — للمسجلين فقط
-    // الكتابة — للأدمن فقط (غيّر الإيميل لو غيّرته)
+    function adminDocumentPath() {
+      return /databases/$(database)/documents/admins/$(request.auth.uid);
+    }
+
+    function isAdmin() {
+      return signedIn()
+        && exists(adminDocumentPath())
+        && get(adminDocumentPath()).data.active == true;
+    }
+
+    function validText(value, min, max) {
+      return value is string && value.size() >= min && value.size() <= max;
+    }
+
+    function validOptionalText(value, max) {
+      return value is string && value.size() <= max;
+    }
+
+    function validOrder(value) {
+      return value is int && value >= 0 && value <= 9999;
+    }
+
+    function validCount(value) {
+      return value is int && value >= 0 && value <= 9999;
+    }
+
+    function validPercent(value) {
+      return value is int && value >= 0 && value <= 100;
+    }
+
+    function validZoom(value) {
+      return value is int && value >= 100 && value <= 220;
+    }
+
+    function validHttpsUrlOrEmpty(value) {
+      return value is string
+        && value.size() <= 2048
+        && (value == '' || value.matches('^https://[^\\s<>"`]+$'));
+    }
+
+    function validVideoUrl(value) {
+      return value is string
+        && value.size() >= 12
+        && value.size() <= 2048
+        && value.matches('^https://[^\\s<>"`]+$');
+    }
+
+    function validCourseData() {
+      return request.resource.data.keys().hasOnly([
+          'title', 'short', 'description', 'imageUrl', 'imagePositionX', 'imagePositionY', 'imageZoom', 'order', 'videoCount'
+        ])
+        && request.resource.data.keys().hasAll([
+          'title', 'short', 'description', 'imageUrl', 'imagePositionX', 'imagePositionY', 'imageZoom', 'order', 'videoCount'
+        ])
+        && validText(request.resource.data.title, 1, 120)
+        && validOptionalText(request.resource.data.short, 220)
+        && validOptionalText(request.resource.data.description, 1200)
+        && validHttpsUrlOrEmpty(request.resource.data.imageUrl)
+        && validPercent(request.resource.data.imagePositionX)
+        && validPercent(request.resource.data.imagePositionY)
+        && validZoom(request.resource.data.imageZoom)
+        && validOrder(request.resource.data.order)
+        && validCount(request.resource.data.videoCount);
+    }
+
+    // ملاحظة: videoUrl هنا بقى جزء من مستند الدرس نفسه (الطريقة البسيطة) —
+    // مفيش مجموعة videoSecrets منفصلة. أي حساب مسجّل دخول يقدر يقرأ الرابط.
+    function validLessonData() {
+      return request.resource.data.keys().hasOnly([
+          'title', 'instructor', 'duration', 'order', 'imageUrl', 'imagePositionX', 'imagePositionY', 'imageZoom', 'videoUrl'
+        ])
+        && request.resource.data.keys().hasAll([
+          'title', 'instructor', 'duration', 'order', 'imageUrl', 'imagePositionX', 'imagePositionY', 'imageZoom', 'videoUrl'
+        ])
+        && validText(request.resource.data.title, 1, 120)
+        && validOptionalText(request.resource.data.instructor, 90)
+        && validOptionalText(request.resource.data.duration, 40)
+        && validOrder(request.resource.data.order)
+        && validHttpsUrlOrEmpty(request.resource.data.imageUrl)
+        && validPercent(request.resource.data.imagePositionX)
+        && validPercent(request.resource.data.imagePositionY)
+        && validZoom(request.resource.data.imageZoom)
+        && validVideoUrl(request.resource.data.videoUrl);
+    }
+
+    function validAdminData() {
+      return request.resource.data.keys().hasOnly(['active', 'email'])
+        && request.resource.data.keys().hasAll(['active'])
+        && request.resource.data.active is bool
+        && (!('email' in request.resource.data) || validOptionalText(request.resource.data.email, 254));
+    }
+
+    match /admins/{adminUid} {
+      allow get: if signedIn() && request.auth.uid == adminUid;
+      allow list: if false;
+      allow create, update: if isAdmin() && validAdminData();
+      allow delete: if isAdmin() && request.auth.uid != adminUid;
+    }
+
     match /courses/{courseId} {
+      // بيانات الكورس العامة — أي زائر يقدر يشوفها (للعرض قبل تسجيل الدخول)
       allow read: if true;
-      allow write: if request.auth != null
-                   && request.auth.token.email == "marwanhrby@gmail.com";
+      allow create, update: if isAdmin() && validCourseData();
+      allow delete: if isAdmin();
 
       match /videos/{videoId} {
-        allow read: if request.auth != null;
-        allow write: if request.auth != null
-                     && request.auth.token.email == "marwanhrby@gmail.com";
+        // فيه videoUrl جوه المستند ده — أي حساب مسجّل دخول بس يقدر يقراه
+        allow read: if signedIn();
+        allow create, update: if isAdmin() && validLessonData();
+        allow delete: if isAdmin();
       }
+    }
+
+    match /userProgress/{userId} {
+      // كل مستخدم يقدر يقرأ/يكتب تقدّمه الخاص فقط.
+      // لا يجوز لأي مستخدم الوصول إلى سجل مستخدم آخر.
+      // الأدمن فقط يقدر يعرض تقدم الطلبة في لوحة الإدارة.
+      allow get: if (signedIn() && request.auth.uid == userId) || isAdmin();
+      allow list: if isAdmin();
+      allow create, update: if signedIn() && request.auth.uid == userId;
+      allow delete: if signedIn() && request.auth.uid == userId;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }

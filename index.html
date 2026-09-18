@@ -1,20 +1,20 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
-
+ 
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-
+ 
   <!-- Google tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-56C8J3YYBH"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date());
-
+ 
     gtag('config', 'G-56C8J3YYBH');
   </script>
-
+ 
   <title>خطوات نحو التميز | منصة تعليمية خيرية للتربية الخاصة وفهم التوحد</title>
   <meta name="description" content="منصة تعليمية خيرية تقدم محتوى معرفيًا عامًا للطلاب والمهتمين بمجال التربية الخاصة حول فهم اضطراب طيف التوحد وطرق التواصل والتعامل التربوي مع الأطفال ذوي الاحتياجات التعليمية الخاصة.">
   <meta name="keywords" content="منصة تعليمية خيرية, تعليم التربية الخاصة, التربية الخاصة, اضطراب طيف التوحد, فهم التوحد, التوعية بالتوحد, مبادئ التوحد, التواصل مع أطفال التوحد, التعامل التربوي مع أطفال التوحد, الأطفال ذوو الاحتياجات التعليمية الخاصة, الاحتياجات التعليمية الخاصة, استراتيجيات تعليمية للتربية الخاصة, مهارات التواصل التربوي, دعم التعلم للأطفال, تعليم شامل, محتوى تعليمي عن التوحد, كورسات التربية الخاصة, دورات تعليمية في التربية الخاصة, تعلم أساسيات التربية الخاصة, موارد تعليمية للتربية الخاصة, إرشادات تربوية عامة, التعامل داخل الصف, المعلم والتربية الخاصة, طلاب التربية الخاصة, تدريب معرفي للتربية الخاصة">
@@ -24,20 +24,20 @@
   <link rel="icon" type="image/svg+xml" href="logo-steps-excellence.svg">
   <link rel="shortcut icon" href="logo-steps-excellence.svg">
   <link rel="apple-touch-icon" href="logo-steps-excellence.svg">
-
+ 
   <!-- Font Awesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" crossorigin="anonymous" referrerpolicy="no-referrer">
-
+ 
   <!-- ملف التنسيقات الخارجي -->
   <link rel="stylesheet" href="style.css">
-
+ 
 </head>
-
+ 
 <body>
-
+ 
   <!-- ===== شريط تقدم القراءة (يتحرك مع التمرير) ===== -->
   <div id="scrollProgressBar" aria-hidden="true"></div>
-
+ 
   <!-- ===== خلفية ثلاثية الأبعاد ديكورية لكل الصفحة ===== -->
   <div id="bgShapes3D" aria-hidden="true">
     <div class="bg-shape bg-shape-1">
@@ -80,7 +80,7 @@
       </div>
     </div>
   </div>
-
+ 
   <!-- ===== مقدمة الفضاء الذهبي 3D ===== -->
   <div id="intro3d">
     <canvas id="introCanvas"></canvas>
@@ -96,7 +96,7 @@
     </div>
     <button id="introSkipBtn">تخطي المقدمة ⏭</button>
   </div>
-
+ 
   <!-- ===== شريط التنقل ===== -->
   <nav id="navbar">
     <div class="nav-container">
@@ -104,14 +104,13 @@
         <img class="logo-icon" src="logo-steps-excellence.svg" alt="شعار خطوات نحو التميز">
         <span class="logo-text">خطوات نحو التميز</span>
       </div>
-
+ 
       <ul class="nav-links" id="navLinks">
         <li><a href="#home" class="nav-link active" data-section="home">الرئيسية</a></li>
         <li><a href="#courses" class="nav-link" data-section="courses">الكورسات</a></li>
-        <li><a href="#freeLecture" class="nav-link" data-section="freeLecture">محاضرة مجانية</a></li>
         <li><a href="#features" class="nav-link" data-section="features">المميزات</a></li>
       </ul>
-
+ 
       <div class="nav-btns">
         <div id="userInfoArea" class="user-info-area">
           <button class="btn btn-outline" id="loginBtn">
@@ -122,13 +121,13 @@
           <i class="fas fa-sign-out-alt"></i><span>خروج</span>
         </button>
       </div>
-
+ 
       <button class="hamburger" id="hamburger">
         <span></span><span></span><span></span>
       </button>
     </div>
   </nav>
-
+ 
   <!-- ===== القسم الرئيسي (Hero) ===== -->
   <section class="hero" id="home">
     <div class="hero-particles" id="particles"></div>
@@ -149,7 +148,7 @@
       <div class="hero-circle" style="background-image: url('https://i.ibb.co/tTHWKtc7/file-00000000719881f4be722621e43e964f.png'); background-size: cover; background-position: center;"></div>
     </div>
   </section>
-
+ 
   <!-- ===== قسم الكورسات ===== -->
   <section class="section" id="courses">
     <div class="container">
@@ -159,52 +158,15 @@
         <p class="section-desc">دورات ومواد معرفية في التربية الخاصة وفهم التوحد — الدخول بالبيانات التي وصلتك</p>
       </div>
       <div class="course-cards fade-up" id="courseCards"></div>
-
+ 
     </div>
   </section>
-
-  <!-- ===== قسم المحاضرة المجانية =====
-       ملاحظة أمان: القسم ده ثابت بالكامل (static) ومفيهوش أي اتصال بـ Firestore
-       خالص — عشان يبقى مفتوح لأي زائر (حتى لو مش مسجل دخول) من غير أي احتمال
-       إنه يلمس أو يسرّب بيانات الكورسات المدفوعة اللي بتتخزن هناك. -->
-  <section class="section section-dark" id="freeLecture">
-    <div class="container">
-      <div class="section-head fade-up">
-        <span class="section-tag"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3.8l2.3 4.7 5.2.8-3.8 3.7.9 5.2-4.6-2.4-4.6 2.4.9-5.2-3.8-3.7 5.2-.8L12 3.8Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg> محاضرة مجانية</span>
-        <h2 class="section-title">محاضرة <span class="gold-text">مجانية بالكامل</span></h2>
-        <p class="section-desc">مفتوحة لأي زائر بدون تسجيل — حمّل الملف المرفق أولاً عشان يتفعّل الفيديو</p>
-      </div>
-
-      <div class="free-lecture-card fade-up">
-        <div class="free-lecture-pdf">
-          <div class="free-lecture-pdf-icon">
-            <svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" style="width:32px;height:32px;"><path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M15 3v5h5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M8.5 17v-5h1.6a1.4 1.4 0 0 1 0 2.8H8.5m5-2.8v5m0-5h1.5a1.5 1.5 0 0 1 0 3H13.5m3-3v5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </div>
-          <div class="free-lecture-pdf-info">
-            <h3>الخطوة الأولى: حمّل الملف المرفق</h3>
-            <p>اختبار شدة التلعثم — النسخة العربية (PDF)</p>
-          </div>
-          <a class="btn btn-gold" id="downloadPdfBtn" href="اختبار_شدة_التلعثم.pdf" download>
-            <i class="fas fa-download"></i> تحميل الـ PDF
-          </a>
-        </div>
-
-        <div class="free-lecture-video-wrap" id="freeLectureVideoWrap">
-          <div class="free-lecture-locked" id="freeLectureLocked">
-            <svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" style="width:44px;height:44px;"><rect x="5" y="10" width="14" height="10" rx="2.4" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 10V8a4 4 0 0 1 8 0v2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-            <p>حمّل الملف الأول عشان تقدر تشاهد المحاضرة</p>
-          </div>
-          <div class="ca-video" id="freeLectureVideoBox"></div>
-        </div>
-      </div>
-    </div>
-  </section>
-
+ 
   <!-- ===== قسم المميزات ===== -->
   <section class="section section-dark" id="features">
     <div class="container">
       <div class="section-head fade-up">
-
+ 
         <span class="section-tag"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3.8l2.3 4.7 5.2.8-3.8 3.7.9 5.2-4.6-2.4-4.6 2.4.9-5.2-3.8-3.7 5.2-.8L12 3.8Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg> لماذا نحن</span>
         <h2 class="section-title">مميزات <span class="gold-text">المنصة</span></h2>
         <p class="section-desc">موارد تعليمية مبسطة للوعي بالتربية الخاصة والتواصل التربوي الداعم</p>
@@ -228,7 +190,7 @@
       </div>
     </div>
   </section>
-
+ 
   <!-- ===== تذييل الصفحة ===== -->
   <footer>
     <div class="container">
@@ -283,7 +245,7 @@
       </div>
     </div>
   </footer>
-
+ 
   <!-- ===== نافذة تسجيل الدخول ===== -->
   <div class="modal-overlay" id="authModalOverlay" style="display: none;">
     <div class="modal-box">
@@ -303,7 +265,7 @@
           </label>
           <button class="auth-submit" id="loginSubmitBtn2">دخول</button>
         </form>
-
+ 
       </div>
     </div>
   </div>
@@ -322,7 +284,7 @@
     </header>
     <main class="ca-main" id="caMain"></main>
   </div>
-
+ 
   <!-- ===== احتفال نجاح الدخول ===== -->
   <div id="caCelebrate">
     <canvas id="celebrateCanvas"></canvas>
@@ -337,7 +299,7 @@
       <p id="celebrateMsg">تم فتح كورساتك الخاصة بنجاح.. بالتوفيق 💪</p>
     </div>
   </div>
-
+ 
   <!-- ===== رسائل التنبيه (Toast) ===== -->
   <div class="toast" id="toast">
     <div class="toast-icon" id="toastIcon"><i class="fas fa-check"></i></div>
@@ -347,17 +309,11 @@
     </div>
     <button class="toast-close" id="toastCloseBtn"><i class="fas fa-times"></i></button>
   </div>
-
+ 
   <!-- ===== زر العودة للأعلى ===== -->
   <!-- ===== زر تفاعلي عائم للوصول السريع (زجاجي) ===== -->
   <div class="fab-wrap" id="fabWrap">
     <div class="fab-menu" id="fabMenu">
-      <a href="#freeLecture" class="fab-item" id="fabLectureItem">
-        <span class="fab-item-icon">
-          <svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 8l9-4 9 4-9 4-9-4Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M7 10.2V15c0 1.5 2.2 3 5 3s5-1.5 5-3v-4.8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M21 8v5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
-        </span>
-        <span class="fab-item-label">محاضرة مجانية</span>
-      </a>
       <a href="https://chat.whatsapp.com/Cca3rywjDDj2FGClwsFwZy" target="_blank" rel="noopener noreferrer" class="fab-item">
         <span class="fab-item-icon">
           <svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="currentColor"><path d="M19.95 16.05C18.75 14.85 17.35 14 15.8 13.5C15.3 13.35 14.75 13.5 14.4 13.85L12.85 15.4C11.65 14.85 10.5 14.15 9.4 13.25C8.3 12.35 7.35 11.35 6.6 10.25L8.15 8.7C8.5 8.35 8.65 7.8 8.5 7.3C8 5.75 7.15 4.35 5.95 3.15C5.6 2.8 5.1 2.65 4.65 2.75C3.7 3.05 2.75 3.4 1.95 3.9C1.35 4.25 1 4.85 1 5.5C1 14.9 9.1 23 18.5 23C19.15 23 19.75 22.65 20.1 22.05C20.6 21.25 20.95 20.3 21.25 19.35C21.35 18.9 21.2 18.4 20.85 18.05L19.95 16.05Z"/></svg>
@@ -370,14 +326,14 @@
       <svg class="svg-icon fab-icon-close" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 6l12 12M18 6 6 18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
     </button>
   </div>
-
+ 
   <!-- ===== زر العودة للأعلى ===== -->
   <button class="scroll-top" id="scrollTopBtn"><i class="fas fa-arrow-up"></i></button>
-
+ 
   <!-- ملف JavaScript الخارجي -->
-
+ 
   <script type="module" src="script.js"></script>
-
+ 
 <script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a33b5581cacc0cb5',t:'MTc4ODE3MTk1NQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
-
+ 
 </html>

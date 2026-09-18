@@ -13,7 +13,7 @@ import {
   query,
   orderBy
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
+ 
 // ===== إعدادات Firebase =====
 const firebaseConfig = {
   apiKey: "AIzaSyD1QN_bG2U_eNJ-lH5xlCZK4qjxvbvJRU4",
@@ -23,13 +23,13 @@ const firebaseConfig = {
   messagingSenderId: "456910182070",
   appId: "1:456910182070:web:2976378ec5e206a3867817"
 };
-
+ 
 // ===== تهيئة Firebase =====
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-
-
+ 
+ 
 // ===== Security helpers: treat Firestore/browser data as untrusted =====
 const MAX_TEXT = {
   title: 120,
@@ -45,40 +45,40 @@ const DOC_ID_RE = /^[A-Za-z0-9_-]{1,160}$/;
 // الصور والفيديوهات يمكن أن تكون من مصادر خارجية، لكن HTTPS فقط.
 // إن أردت Allowlist صارمة لاحقًا يمكن تقييدها هنا وفي Firestore Rules.
 const ALLOWED_IMAGE_HOSTS = null;
-
+ 
 function limitText(value, max = 200) {
   return String(value ?? "").replace(/[\u0000-\u001F\u007F]/g, "").trim().slice(0, max);
 }
-
+ 
 function safeInt(value, fallback = 1, min = 0, max = 9999) {
   const n = Number(value);
   if (!Number.isInteger(n) || n < min || n > max) return fallback;
   return n;
 }
-
+ 
 function safePercent(value) {
   const n = Number(value);
   if (!Number.isFinite(n)) return 50;
   return Math.min(100, Math.max(0, Math.round(n)));
 }
-
+ 
 function safeZoom(value) {
   const n = Number(value);
   if (!Number.isFinite(n)) return 100;
   return Math.min(220, Math.max(100, Math.round(n)));
 }
-
+ 
 function imageStyleAttr(imageRecord) {
   const x = safePercent(imageRecord?.imagePositionX);
   const y = safePercent(imageRecord?.imagePositionY);
   const zoom = safeZoom(imageRecord?.imageZoom);
   return `object-position:${x}% ${y}%; transform:scale(${zoom / 100});`;
 }
-
+ 
 function isSafeDocId(id) {
   return DOC_ID_RE.test(String(id ?? ""));
 }
-
+ 
 function safeUrl(value, { hosts = null, allowPath = () => true } = {}) {
   const raw = String(value ?? "").trim();
   if (!raw || raw.length > 2048) return "";
@@ -94,11 +94,11 @@ function safeUrl(value, { hosts = null, allowPath = () => true } = {}) {
     return "";
   }
 }
-
+ 
 function safeImageUrl(value) {
   return safeUrl(value, { hosts: ALLOWED_IMAGE_HOSTS });
 }
-
+ 
 function sanitizeCourse(raw, id = "") {
   return {
     id: String(id || raw?.id || ""),
@@ -115,7 +115,7 @@ function sanitizeCourse(raw, id = "") {
     loadError: Boolean(raw?.loadError)
   };
 }
-
+ 
 function sanitizeVideo(raw, id = "") {
   return {
     id: String(id || raw?.id || ""),
@@ -130,11 +130,11 @@ function sanitizeVideo(raw, id = "") {
     imageZoom: safeZoom(raw?.imageZoom)
   };
 }
-
+ 
 function attr(value) {
   return escapeHtml(String(value ?? ""));
 }
-
+ 
 function svgIcon(name, className = "") {
   const classes = `svg-icon ${className}`.trim();
   const common = `class="${classes}" viewBox="0 0 24 24" aria-hidden="true" focusable="false"`;
@@ -150,8 +150,8 @@ function svgIcon(name, className = "") {
   };
   return icons[name] || "";
 }
-
-
+ 
+ 
 // ===== الكورسات بتتقرا من Firebase Firestore =====
 // إدارة الكورسات والفيديوهات تتم من لوحة الأدمن (ملف محلي غير منشور)
 // الحماية: بيانات الكورس العامة للعرض، والفيديوهات للمسجلين فقط (قواعد Firestore)
@@ -159,11 +159,11 @@ let COURSES = [];
 let coursesLoaded = false; // false = لسه بيتحمل من Firestore (نعرض سكيلتون)، true = وصل الرد (فاضي أو فيه كورسات)
 // ===== المتغيرات العامة =====
 let currentUser = null;
-let sections = ["home", "courses", "freeLecture", "features"];
+let sections = ["home", "courses", "features"];
 let currentSectionIndex = 0;
 let pendingCourseId = null;
 let freshLogin = false; // true فقط لو المستخدم ضغط "دخول" الآن (مش استعادة جلسة قديمة)
-
+ 
 // ===== إخفاء شيمر تحميل الثمبنيلز (بديل عن onload/onerror الـ inline عشان يشتغل مع CSP صارم) =====
 // load/error مش بيعملوا bubble على <img>، فلازم نستخدم capture phase على مستوى الـ document
 document.addEventListener(
@@ -177,7 +177,7 @@ document.addEventListener(
   },
   true
 );
-
+ 
 document.addEventListener(
   "error",
   (e) => {
@@ -189,7 +189,7 @@ document.addEventListener(
   },
   true
 );
-
+ 
 // ===== بداية التشغيل =====
 window.addEventListener("load", () => {
   createParticles();
@@ -198,12 +198,12 @@ window.addEventListener("load", () => {
   runIntro();
   updateScrollProgress();
 });
-
+ 
 // ===== مقدمة الفضاء الذهبي 3D (من 0 إلى 6 ثواني) =====
 const INTRO_MS = 6000;
 let introDone = false;
 let introRAF = null;
-
+ 
 function revealPlatform() {
   if (introDone) return;
   introDone = true;
@@ -217,7 +217,7 @@ function revealPlatform() {
   document.body.style.overflow = "";
   initObserver();
 }
-
+ 
 function runIntro() {
   const intro = document.getElementById("intro3d");
   if (!intro) {
@@ -228,13 +228,13 @@ function runIntro() {
   document
     .getElementById("introSkipBtn")
     ?.addEventListener("click", revealPlatform);
-
+ 
   // احترام تفضيل تقليل الحركة في المتصفح
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
     revealPlatform();
     return;
   }
-
+ 
   // أمان: لو حصل أي خطأ في المقدمة → المنصة تظهر عادي
   try {
     Promise.race([
@@ -250,10 +250,10 @@ function runIntro() {
   } catch (e) {
     console.error(e);
   }
-
+ 
   setTimeout(revealPlatform, INTRO_MS);
 }
-
+ 
 // عيّنات نقاط من نص العنوان عشان الجزيئات تكوّنه (مع حلقة احتياطية)
 function sampleTitleTargets() {
   const pts = [];
@@ -274,7 +274,7 @@ function sampleTitleTargets() {
         if (data[(y * w + x) * 4 + 3] > 130)
           pts.push({ x: x - w / 2, y: y - h / 2 });
   } catch (e) {}
-
+ 
   if (pts.length < 40) {
     pts.length = 0;
     for (let i = 0; i < 260; i++) {
@@ -288,14 +288,14 @@ function sampleTitleTargets() {
   }
   return pts.slice(0, window.innerWidth < 600 ? 220 : 380);
 }
-
+ 
 function startIntroCanvas() {
   const cv = document.getElementById("introCanvas");
   if (!cv) return;
   const ctx = cv.getContext("2d");
   const DPR = Math.min(window.devicePixelRatio || 1, 2);
   let W = window.innerWidth, H = window.innerHeight;
-
+ 
   function resize() {
     W = window.innerWidth;
     H = window.innerHeight;
@@ -307,13 +307,13 @@ function startIntroCanvas() {
   }
   resize();
   window.addEventListener("resize", resize);
-
+ 
   const GOLD = ["255,215,0", "255,165,0", "255,229,92", "255,255,255"];
   const rnd = (a, b) => a + Math.random() * (b - a);
   const pick = () => GOLD[(Math.random() * GOLD.length) | 0];
   const t0 = performance.now();
   const FLY_START = 1200, HOLD_END = 5400;
-
+ 
   // غبار خلفي بعمق (بارالاكس) بيتحرك على مهله
   const dust = Array.from(
     { length: Math.round((W * H) / 16000) + 40 },
@@ -328,7 +328,7 @@ function startIntroCanvas() {
       c: pick()
     })
   );
-
+ 
   // جزيئات التكوين: بتنطلق من أطراف الفضاء نحو عيّنات نص العنوان
   const formers = sampleTitleTargets().map((t) => {
     const a = Math.random() * Math.PI * 2;
@@ -345,15 +345,15 @@ function startIntroCanvas() {
       c: pick()
     };
   });
-
+ 
   const ease = (p) =>
     p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
-
+ 
   function frame(now) {
     if (introDone) return;
     const t = now - t0;
     ctx.clearRect(0, 0, W, H);
-
+ 
     // الغبار الخلفي
     for (const p of dust) {
       p.x += p.vx * p.z * 2;
@@ -367,7 +367,7 @@ function startIntroCanvas() {
       ctx.arc(p.x, p.y, p.r * p.z, 0, 7);
       ctx.fill();
     }
-
+ 
     // جزيئات التكوين: طيران ← تجمع ولمعان ← تحرر
     for (const p of formers) {
       const raw = (t - FLY_START - p.delay) / p.d;
@@ -397,7 +397,7 @@ function startIntroCanvas() {
       ctx.arc(x, y, sz, 0, 7);
       ctx.fill();
     }
-
+ 
     // نبضة حلقة ذهبية عند لحظة اللمعة
     if (t > 4500 && t < 5200) {
       const k = (t - 4500) / 700;
@@ -407,12 +407,12 @@ function startIntroCanvas() {
       ctx.arc(W / 2, H * 0.47, 60 + k * Math.max(W, H) * 0.55, 0, 7);
       ctx.stroke();
     }
-
+ 
     introRAF = requestAnimationFrame(frame);
   }
   introRAF = requestAnimationFrame(frame);
 }
-
+ 
 function updateCurrentSection() {
   const pos = window.scrollY + 150;
   for (let i = 0; i < sections.length; i++) {
@@ -427,7 +427,7 @@ function updateCurrentSection() {
     }
   }
 }
-
+ 
 window.addEventListener("scroll", () => {
   updateCurrentSection();
   const nav = document.getElementById("navbar");
@@ -438,7 +438,7 @@ window.addEventListener("scroll", () => {
   updateActiveLink();
   updateScrollProgress();
 });
-
+ 
 // ===== شريط تقدم القراءة =====
 function updateScrollProgress() {
   const bar = document.getElementById("scrollProgressBar");
@@ -448,38 +448,38 @@ function updateScrollProgress() {
   const percent = scrollableHeight > 0 ? (window.scrollY / scrollableHeight) * 100 : 0;
   bar.style.width = `${Math.min(100, Math.max(0, percent))}%`;
 }
-
+ 
 // ===== الزر العائم للوصول السريع =====
 const fabWrap = document.getElementById("fabWrap");
 const fabMainBtn = document.getElementById("fabMainBtn");
-
+ 
 function closeFab() {
   fabWrap?.classList.remove("open");
   fabMainBtn?.setAttribute("aria-expanded", "false");
 }
-
+ 
 fabMainBtn?.addEventListener("click", () => {
   const isOpen = fabWrap?.classList.toggle("open");
   fabMainBtn.setAttribute("aria-expanded", isOpen ? "true" : "false");
 });
-
+ 
 document.addEventListener("click", (e) => {
   if (fabWrap?.classList.contains("open") && !fabWrap.contains(e.target)) {
     closeFab();
   }
 });
-
+ 
 document.getElementById("fabLectureItem")?.addEventListener("click", () => {
   closeFab();
 });
-
+ 
 // ===== دالة مساعدة =====
 function escapeHtml(t) {
   const d = document.createElement("div");
   d.textContent = t;
   return d.innerHTML;
 }
-
+ 
 // ===== أيقونة/صورة الكورس: بتعرض imageUrl لو موجودة، وإلا إيموجي افتراضي =====
 // (الكورسات القديمة كانت بتتخزن بحقل icon، دلوقتي بتتخزن بحقل imageUrl)
 // أثناء تحميل الصورة بتتعرض شيمر سكيلتون وبتختفي أول ما الصورة توصل (onload)
@@ -489,7 +489,7 @@ function courseThumbHtml(c) {
     ? `<span class="course-thumb-frame thumb-loading"><img class="course-thumb-img" src="${attr(imageUrl)}" alt="" style="${attr(imageStyleAttr(c))}" loading="lazy" referrerpolicy="no-referrer"></span>`
     : svgIcon("book", "svg-icon-large");
 }
-
+ 
 // ===== صورة الدرس: بتعرض صورة لو موجودة، وإلا مربع افتراضي =====
 function lessonThumbHtml(v) {
   const imageUrl = safeImageUrl(v?.imageUrl);
@@ -497,7 +497,7 @@ function lessonThumbHtml(v) {
     ? `<div class="lesson-thumb lesson-thumb-imgbox thumb-loading"><img src="${attr(imageUrl)}" alt="" style="${attr(imageStyleAttr(v))}" loading="lazy" referrerpolicy="no-referrer"></div>`
     : `<div class="lesson-thumb">${svgIcon("play", "svg-icon-lesson")}<small>شاهد</small></div>`;
 }
-
+ 
 // ===== قوالب سكيلتون اللودينج (كروت الكورسات / بطاقات الاختيار / صفوف الدروس) =====
 function skeletonCourseCards(count = 3) {
   return Array.from(
@@ -514,7 +514,7 @@ function skeletonCourseCards(count = 3) {
         </div>`
   ).join("");
 }
-
+ 
 function skeletonPickCards(count = 3) {
   return (
     `<div class="ca-grid">` +
@@ -532,7 +532,7 @@ function skeletonPickCards(count = 3) {
     `</div>`
   );
 }
-
+ 
 function skeletonLessonRows(count = 4) {
   return (
     `<div class="lesson-list">` +
@@ -550,7 +550,7 @@ function skeletonLessonRows(count = 4) {
     `</div>`
   );
 }
-
+ 
 // ===== تحويل لينكات الفيديو لصيغة التشغيل (يوتيوب / درايف) =====
 function safeVideoUrl(url) {
   return safeUrl(url, {
@@ -565,7 +565,7 @@ function safeVideoUrl(url) {
     }
   });
 }
-
+ 
 // ===== تحويل لينكات الفيديو لصيغة التشغيل (يوتيوب / درايف / Gumlet) =====
 function toEmbedUrl(url) {
   const safe = safeVideoUrl(url);
@@ -574,7 +574,7 @@ function toEmbedUrl(url) {
     const u = new URL(safe);
     const h = u.hostname.toLowerCase().replace(/^www\./, "");
     let videoId = "";
-
+ 
     if (h === "youtu.be") {
       videoId = u.pathname.slice(1);
       return YOUTUBE_ID_RE.test(videoId) ? `https://www.youtube.com/embed/${videoId}` : null;
@@ -622,7 +622,7 @@ async function loadCoursesFromFirestore() {
     }
   }
 }
-
+ 
 // ===== عارضة الكورسات المقفولة (في قسم الكورسات) =====
 function renderCourseShowcase() {
   const wrap = document.getElementById("courseCards");
@@ -654,7 +654,7 @@ function renderCourseShowcase() {
     btn.addEventListener("click", () => enterCourse(btn.dataset.course));
   });
 }
-
+ 
 function enterCourse(courseId) {
   if (!currentUser) {
     // نتذكر الكورس المطلوب، وبعد تسجيل الدخول ندخل عليه مباشرة
@@ -669,11 +669,11 @@ function enterCourse(courseId) {
   }
   openCourseArea(false, courseId);
 }
-
+ 
 // ===== منطقة الكورسات الخاصة (معزولة عن المنصة) =====
 // حالة التنقل جوه المنطقة: قائمة الكورسات ← دروس الكورس ← تشغيل فيديو
 const caState = { demo: false, courseIdx: null, videoIdx: null };
-
+ 
 function openCourseArea(demo = false, courseId = null) {
   const area = document.getElementById("courseArea");
   if (!area) return;
@@ -681,7 +681,7 @@ function openCourseArea(demo = false, courseId = null) {
   area.classList.add("open");
   document.body.style.overflow = "hidden";
   area.scrollTop = 0;
-
+ 
   // لو طلب كورس محدد → ندخل على دروسه مباشرة بدل قائمة الكورسات
   if (courseId) {
     const idx = COURSES.findIndex((c) => c.id === courseId);
@@ -692,7 +692,7 @@ function openCourseArea(demo = false, courseId = null) {
   }
   renderCoursesList();
 }
-
+ 
 function caRender(html) {
   const area = document.getElementById("courseArea");
   const main = document.getElementById("caMain");
@@ -709,7 +709,7 @@ function caRender(html) {
       </div>${html}`;
   area.scrollTop = 0;
 }
-
+ 
 // 1) شاشة اختيار الكورس
 function renderCoursesList() {
   caState.courseIdx = null;
@@ -739,7 +739,7 @@ function renderCoursesList() {
     )
   );
 }
-
+ 
 // 2) شاشة دروس الكورس (الفيديوهات بتتقرا من Firestore - للمسجلين فقط)
 function renderCourseLessons(idx) {
   const c = COURSES[idx];
@@ -753,7 +753,7 @@ function renderCourseLessons(idx) {
   }
   paintLessons(idx);
 }
-
+ 
 async function loadLessons(idx) {
   const c = COURSES[idx];
   if (!c) return;
@@ -770,7 +770,7 @@ async function loadLessons(idx) {
   }
   if (caState.courseIdx === idx) paintLessons(idx);
 }
-
+ 
 function lessonsShell(c, inner) {
   return `
     <button class="ca-back">← كل الكورسات</button>
@@ -780,7 +780,7 @@ function lessonsShell(c, inner) {
       ${inner}
     </div>`;
 }
-
+ 
 function paintLessons(idx) {
   const c = COURSES[idx];
   if (!c) return;
@@ -822,8 +822,8 @@ function paintLessons(idx) {
     )
   );
 }
-
-
+ 
+ 
 // 3) شاشة تشغيل الدرس — بتعرض الشاشة فورًا بحالة تحميل، وبعدين تجيب رابط الفيديو
 // من السيرفر (مش من Firestore مباشرة، لأن الـ rules بتمنع قراءته من العميل تمامًا)
 // 3) شاشة تشغيل الدرس
@@ -832,7 +832,7 @@ function openLesson(ci, vi) {
   const v = c?.videos?.[vi];
   if (!c || !v) return;
   caState.videoIdx = vi;
-
+ 
   let embed = toEmbedUrl(v.videoUrl);
   if (
     embed &&
@@ -851,7 +851,7 @@ function openLesson(ci, vi) {
     : directVideo
       ? `<video controls controlsList="nodownload" preload="metadata" src="${attr(directVideo)}"></video>`
       : `<div class="ca-empty">⚠️ رابط الفيديو غير مسموح أو غير صالح</div>`;
-
+ 
   const html = `
     <button class="ca-back">← دروس الكورس</button>
     <div class="ca-course">
@@ -873,12 +873,12 @@ function openLesson(ci, vi) {
     .getElementById("caFsBtn")
     ?.addEventListener("click", toggleVideoFullscreen);
 }
-
+ 
 // ===== ملء الشاشة لمشغل الفيديو =====
 function toggleVideoFullscreen() {
   const box = document.getElementById("caVideoBox");
   if (!box) return;
-
+ 
   const isFs =
     document.fullscreenElement || document.webkitFullscreenElement;
   if (isFs) {
@@ -887,7 +887,7 @@ function toggleVideoFullscreen() {
     )?.call(document);
     return;
   }
-
+ 
   const fsEnabled =
     document.fullscreenEnabled || document.webkitFullscreenEnabled;
   if (!fsEnabled) {
@@ -898,7 +898,7 @@ function toggleVideoFullscreen() {
     );
     return;
   }
-
+ 
   const req = box.requestFullscreen || box.webkitRequestFullscreen;
   if (req) {
     const p = req.call(box);
@@ -908,10 +908,10 @@ function toggleVideoFullscreen() {
       );
   }
 }
-
+ 
 // ===== احتفال نجاح الدخول للكورسات =====
 let confettiRAF = null;
-
+ 
 function showCelebration({ title, message, onDone } = {}) {
   const ov = document.getElementById("caCelebrate");
   if (!ov) {
@@ -934,7 +934,7 @@ function showCelebration({ title, message, onDone } = {}) {
     onDone?.();
   }, 2300);
 }
-
+ 
 function playEnterCelebration(courseId = null) {
   showCelebration({
     title: "🎉 أهلاً بيك من تاني!",
@@ -945,7 +945,7 @@ function playEnterCelebration(courseId = null) {
     }
   });
 }
-
+ 
 // ===== احتفال ترحيبي عام عند تسجيل الدخول للمنصة (بدون فتح كورس) =====
 function playWelcomeCelebration() {
   const name = currentUser?.email ? currentUser.email.split("@")[0] : "";
@@ -957,7 +957,7 @@ function playWelcomeCelebration() {
     }
   });
 }
-
+ 
 function startConfetti() {
   const cv = document.getElementById("celebrateCanvas");
   if (!cv) return;
@@ -967,7 +967,7 @@ function startConfetti() {
   cv.width = W * DPR;
   cv.height = H * DPR;
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-
+ 
   const COLORS = ["#ffd700", "#ffa500", "#ffe55c", "#ffffff", "#42abff"];
   const parts = Array.from({ length: 150 }, () => {
     const a = Math.random() * Math.PI * 2;
@@ -986,7 +986,7 @@ function startConfetti() {
     };
   });
   const t0 = performance.now();
-
+ 
   function frame(now) {
     const t = now - t0;
     ctx.clearRect(0, 0, W, H);
@@ -1008,13 +1008,13 @@ function startConfetti() {
   }
   confettiRAF = requestAnimationFrame(frame);
 }
-
+ 
 function stopConfetti() {
   if (confettiRAF) cancelAnimationFrame(confettiRAF);
   const cv = document.getElementById("celebrateCanvas");
   if (cv) cv.getContext("2d").clearRect(0, 0, cv.width, cv.height);
 }
-
+ 
 function closeCourseArea() {
   const area = document.getElementById("courseArea");
   if (!area) return;
@@ -1024,13 +1024,13 @@ function closeCourseArea() {
   const main = document.getElementById("caMain");
   if (main) main.innerHTML = "";
 }
-
+ 
 // ===== القائمة المنسدلة =====
 document.getElementById("hamburger")?.addEventListener("click", () => {
   document.getElementById("hamburger").classList.toggle("open");
   document.getElementById("navLinks").classList.toggle("open");
 });
-
+ 
 document.querySelectorAll(".nav-link").forEach((l) => {
   l.addEventListener("click", () => {
     document.getElementById("hamburger")?.classList.remove("open");
@@ -1042,7 +1042,7 @@ document.querySelectorAll(".nav-link").forEach((l) => {
     }
   });
 });
-
+ 
 function updateActiveLink() {
   const secs = document.querySelectorAll("section[id]");
   const links = document.querySelectorAll(".nav-link");
@@ -1054,11 +1054,11 @@ function updateActiveLink() {
     l.classList.toggle("active", l.getAttribute("href") === `#${cur}`);
   });
 }
-
+ 
 document.getElementById("scrollTopBtn")?.addEventListener("click", () => {
   window.scrollTo({ top: 0, behavior: "smooth" });
 });
-
+ 
 // ===== تأثيرات الظهور =====
 function initObserver() {
   const obs = new IntersectionObserver(
@@ -1074,7 +1074,7 @@ function initObserver() {
   );
   document.querySelectorAll(".fade-up").forEach((el) => obs.observe(el));
 }
-
+ 
 // ===== الجسيمات =====
 function createParticles() {
   const c = document.getElementById("particles");
@@ -1093,7 +1093,7 @@ function createParticles() {
     c.appendChild(p);
   }
 }
-
+ 
 // ===== دوال المصادقة =====
 function openAuthModal() {
   const m = document.getElementById("authModalOverlay");
@@ -1101,18 +1101,18 @@ function openAuthModal() {
     console.error("❌ authModalOverlay مش موجود!");
     return;
   }
-
+ 
   m.style.display = "flex";
   m.classList.add("active");
   document.body.style.overflow = "hidden";
-
+ 
   const emailInput = document.getElementById("loginEmail");
   const passInput = document.getElementById("loginPassword");
   if (emailInput) emailInput.value = "";
   if (passInput) passInput.value = "";
   if (emailInput) emailInput.focus();
 }
-
+ 
 function closeAuthModal() {
   const m = document.getElementById("authModalOverlay");
   if (!m) return;
@@ -1120,13 +1120,13 @@ function closeAuthModal() {
   m.classList.remove("active");
   document.body.style.overflow = "";
 }
-
+ 
 // ===== واجهة المستخدم حسب حالة الدخول =====
 function updateLoginUI() {
   const area = document.getElementById("userInfoArea");
   const out = document.getElementById("logoutBtnNav");
   const container = document.getElementById("heroBtnsContainer");
-
+ 
   if (currentUser) {
     if (area) {
       area.innerHTML = `<span id="userNameDisplay">${svgIcon("user")} ${escapeHtml(
@@ -1158,7 +1158,7 @@ function updateLoginUI() {
     }
   }
 }
-
+ 
 // ===== مستمعي النوافذ =====
 document
   .getElementById("closeAuthModalBtn")
@@ -1172,7 +1172,7 @@ document.getElementById("caBackBtn")?.addEventListener("click", () => {
   closeCourseArea();
 });
 document.getElementById("caLogoutBtn")?.addEventListener("click", handleLogout);
-
+ 
 document
   .getElementById("loginSubmitBtn2")
   ?.addEventListener("click", handleLogin);
@@ -1181,49 +1181,11 @@ document
     if (e.key === "Enter") handleLogin();
   });
 });
-
+ 
 document.getElementById("notifyMeBtn")?.addEventListener("click", () => {
   showToast("info", "📢 قريباً!", "سيتم إضافة كورسات جديدة قريباً.. تابعونا!");
 });
-
-// ===== المحاضرة المجانية: قسم ثابت بالكامل (بدون Firestore) =====
-// الفيديو يفضل مقفول لحد ما المستخدم يدوس زرار تحميل الـ PDF — بعدها
-// بيتفعل ويفضل متفعل في زياراته الجاية (localStorage) على نفس المتصفح.
-const FREE_LECTURE_YOUTUBE_URL = "https://youtu.be/-W1PwFo8E9M";
-const FREE_LECTURE_UNLOCK_KEY = "freeLecturePdfDownloaded";
-
-function unlockFreeLecture() {
-  const box = document.getElementById("freeLectureVideoBox");
-  const locked = document.getElementById("freeLectureLocked");
-  if (!box || !locked) return;
-  if (!box.querySelector("iframe")) {
-    const embed = toEmbedUrl(FREE_LECTURE_YOUTUBE_URL);
-    if (embed) {
-      box.innerHTML = `<iframe src="${attr(embed)}" title="محاضرة مجانية" referrerpolicy="origin" sandbox="allow-scripts allow-same-origin allow-presentation" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; fullscreen"></iframe>`;
-    }
-  }
-  locked.classList.add("unlocked");
-}
-
-document.getElementById("downloadPdfBtn")?.addEventListener("click", () => {
-  try {
-    localStorage.setItem(FREE_LECTURE_UNLOCK_KEY, "1");
-  } catch (e) {
-    console.error("تعذر حفظ حالة فتح المحاضرة:", e);
-  }
-  unlockFreeLecture();
-});
-
-window.addEventListener("load", () => {
-  let alreadyUnlocked = false;
-  try {
-    alreadyUnlocked = localStorage.getItem(FREE_LECTURE_UNLOCK_KEY) === "1";
-  } catch (e) {
-    alreadyUnlocked = false;
-  }
-  if (alreadyUnlocked) unlockFreeLecture();
-});
-
+ 
 // 🧪 زرار المعاينة التجريبية المؤقت — هيتشال قبل النشر
 document.getElementById("demoCourseBtn")?.addEventListener("click", () => {
   openCourseArea(true);
@@ -1233,14 +1195,14 @@ document.getElementById("demoCourseBtn")?.addEventListener("click", () => {
     "ده شكل صفحة الكورس — تسجيل الدخول الحقيقي بيانات Firebase"
   );
 });
-
+ 
 document.getElementById("toastCloseBtn")?.addEventListener("click", closeToast);
-
+ 
 // ===== حالة تسجيل الدخول =====
 onAuthStateChanged(auth, (u) => {
   currentUser = u ? { uid: u.uid, email: u.email || "" } : null;
   updateLoginUI();
-
+ 
   if (u) {
     closeAuthModal();
     // لو فتح تسجيل الدخول عشان يدخل كورس محدد → دخّله على طول مع احتفال الكورس
@@ -1255,7 +1217,7 @@ onAuthStateChanged(auth, (u) => {
     freshLogin = false;
   }
 });
-
+ 
 async function handleLogin() {
   const emailInput = document.getElementById("loginEmail");
   const passInput = document.getElementById("loginPassword");
@@ -1296,7 +1258,7 @@ async function handleLogin() {
     }
   }
 }
-
+ 
 function loginErrorMessage(e) {
   const map = {
     "auth/invalid-credential": "البريد الإلكتروني أو كلمة المرور غير صحيحة",
@@ -1314,7 +1276,7 @@ function loginErrorMessage(e) {
   };
   return map[e?.code] || "حدث خطأ أثناء تسجيل الدخول.. جرب تاني";
 }
-
+ 
 async function handleLogout() {
   try {
     await signOut(auth);
@@ -1324,10 +1286,10 @@ async function handleLogout() {
     showToast("error", "⚠️ خطأ", "حدث خطأ أثناء تسجيل الخروج");
   }
 }
-
+ 
 // ===== رسائل التنبيه =====
 let toastTimer = null;
-
+ 
 function showToast(type, title, msg) {
   const t = document.getElementById("toast");
   const icon = document.getElementById("toastIcon");
@@ -1350,11 +1312,11 @@ function showToast(type, title, msg) {
   t.classList.add("show");
   toastTimer = setTimeout(() => closeToast(), 4000);
 }
-
+ 
 function closeToast() {
   document.getElementById("toast")?.classList.remove("show");
 }
-
+ 
 // ===== روابط التنقل =====
 document.querySelectorAll('a[href^="#"]').forEach((l) => {
   l.addEventListener("click", (e) => {

@@ -113,11 +113,10 @@ service cloud.firestore {
           'completedCount', 'totalLessons', 'percent', 'updatedAt'
         ])
         && request.resource.data.keys().hasAll([
-          'studentUid', 'studentEmail', 'courseId', 'courseTitle', 'completedLessonIds',
+          'studentUid', 'courseId', 'courseTitle', 'completedLessonIds',
           'completedCount', 'totalLessons', 'percent', 'updatedAt'
         ])
         && request.resource.data.studentUid == request.auth.uid
-        && validOptionalText(request.resource.data.studentEmail, 254)
         && validText(request.resource.data.courseId, 1, 160)
         && validText(request.resource.data.courseTitle, 1, 120)
         && request.resource.data.completedLessonIds is list

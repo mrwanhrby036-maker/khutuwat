@@ -843,14 +843,13 @@ async function saveCourseProgress(course, completed) {
   const totalLessons = course.videos?.length || 0;
   await setDoc(doc(db, "progress", progressDocId(course.id)), {
     studentUid: currentUser.uid,
-    studentEmail: currentUser.email || "",
     courseId: course.id,
     courseTitle: course.title,
     completedLessonIds,
     completedCount: completedLessonIds.length,
     totalLessons,
     percent: totalLessons ? Math.round((completedLessonIds.length / totalLessons) * 100) : 0,
-    updatedAt: new Date()
+    updatedAt: serverTimestamp()
   });
 }
 
@@ -1384,12 +1383,11 @@ async function handleLogin() {
  
 function loginErrorMessage(e) {
   const map = {
-    "auth/invalid-credential": "البريد الإلكتروني أو كلمة المرور غير صحيحة",
-    "auth/wrong-password": "كلمة المرور غير صحيحة",
-    "auth/user-not-found": "لا يوجد حساب بهذه البيانات",
-    "auth/invalid-email": "صيغة البريد الإلكتروني غير صحيحة",
-    "auth/too-many-requests":
-      "محاولات كتير جداً.. استنى دقيقة وجرب تاني",
+    "auth/invalid-credential": "بيانات الدخول غير صحيحة",
+    "auth/wrong-password": "بيانات الدخول غير صحيحة",
+    "auth/user-not-found": "بيانات الدخول غير صحيحة",
+    "auth/invalid-email": "بيانات الدخول غير صحيحة",
+    "auth/too-many-requests": "محاولات كثيرة. انتظر قليلًا ثم حاول مرة أخرى",
     "auth/operation-not-allowed":
       "تسجيل الدخول بالإيميل غير مفعل — فعّل Email/Password من Firebase Console",
     "auth/network-request-failed":

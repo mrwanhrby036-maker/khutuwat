@@ -14,7 +14,8 @@ import {
   setDoc,
   doc,
   query,
-  orderBy
+  orderBy,
+  serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
  
 // ===== إعدادات Firebase =====
@@ -1302,15 +1303,30 @@ document.getElementById("demoCourseBtn")?.addEventListener("click", () => {
 document.getElementById("toastCloseBtn")?.addEventListener("click", closeToast);
  
 // ===== حالة تسجيل الدخول =====
+let stopPresenceTracking = () => {};
 onAuthStateChanged(auth, (u) => {
+  stopPresenceTracking();
   currentUser = u ? { uid: u.uid, email: u.email || "" } : null;
   updateLoginUI();
  
   if (u) {
-    setDoc(doc(db, "studentProfiles", u.uid), {
+    const updatePresence = (online) => setDoc(doc(db, "studentProfiles", u.uid), {
       email: u.email || "",
-      lastLoginAt: new Date()
+      online,
+      lastSeen: serverTimestamp(),
+      ...(online ? { lastLoginAt: serverTimestamp() } : {})
     }, { merge: true }).catch(() => {});
+    updatePresence(true);
+    const presenceTimer = window.setInterval(() => updatePresence(true), 25_000);
+    const handleVisibility = () => updatePresence(document.visibilityState === "visible");
+    document.addEventListener("visibilitychange", handleVisibility);
+    const stopTracking = () => {
+      updatePresence(false);
+      window.clearInterval(presenceTimer);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+    stopPresenceTracking = stopTracking;
+    window.addEventListener("beforeunload", stopTracking, { once: true });
     closeAuthModal();
     // لو فتح تسجيل الدخول عشان يدخل كورس محدد → دخّله على طول مع احتفال الكورس
     if (pendingCourseId) {

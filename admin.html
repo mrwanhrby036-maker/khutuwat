@@ -135,6 +135,11 @@
     .student-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
     .student-head strong { color: var(--gold); word-break: break-all; }
     .student-head small { color: var(--gray); }
+    .student-status { font-size: 12px; white-space: nowrap; }
+    .student-status i { font-size: 8px; vertical-align: middle; }
+    .student-status.online { color: #35d99a; }
+    .student-status.offline { color: var(--gray); }
+    .student-course-count { color: var(--gray); font-size: 12px; margin: -6px 0 10px; }
     .student-progress { display: grid; grid-template-columns: minmax(150px, 1fr) 90px 55px; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid rgba(255, 215, 0, 0.08); }
     .student-course { min-width: 0; color: var(--gray-light); font-size: 13px; overflow-wrap: anywhere; }
     .student-course small { display: block; color: var(--gray); margin-top: 3px; }
@@ -392,16 +397,6 @@
         <div id="studentsList"><p style="color:var(--gray); font-size:13px;">⏳ جاري التحميل...</p></div>
       </div>
 
-      <div class="card">
-        <h2><i class="fas fa-bolt"></i> بداية سريعة</h2>
-        <p style="color:var(--gray); font-size:13.5px; margin-bottom:12px;">
-          لو أول مرة: استورد محتوى تجريبي جاهز لتجربة النظام كامل، وبعدين عدّله براحتك.
-        </p>
-        <button class="btn btn-outline" id="seedBtn">
-          <i class="fas fa-download"></i> استيراد محتوى تجريبي
-        </button>
-      </div>
-
       <!-- نموذج الكورس -->
       <div class="card">
         <h2 id="courseFormTitle"><i class="fas fa-book"></i> إضافة كورس جديد</h2>
@@ -538,7 +533,8 @@
       updateDoc,
       deleteDoc,
       query,
-      orderBy
+      orderBy,
+      onSnapshot
     } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
     // ===== إعدادات Firebase (نفس المشروع) =====
@@ -696,6 +692,10 @@
     let editingVideoId = null;
     let selectedCourseId = null;
     let coursesCache = [];
+    let studentsProfiles = [];
+    let studentsProgress = [];
+    let stopStudentsProfiles = null;
+    let stopStudentsProgress = null;
 
 
 function svgIcon(name, className = "") {
@@ -744,8 +744,13 @@ function svgIcon(name, className = "") {
       if (isAdmin) {
         $("whoEmail").textContent = u.email || "";
         loadCourses();
-        loadStudents();
+        subscribeToStudents();
         loadAdminStudentOptions();
+      } else {
+        stopStudentsProfiles?.();
+        stopStudentsProgress?.();
+        stopStudentsProfiles = null;
+        stopStudentsProgress = null;
       }
     });
 
@@ -777,51 +782,61 @@ function svgIcon(name, className = "") {
     $("deniedOutBtn").addEventListener("click", () => signOut(auth));
 
     // ===== الكورسات =====
-    async function loadStudents() {
-      try {
-        requireAdminUi();
-        const [studentsSnap, progressSnap] = await Promise.all([
-          getDocs(collection(db, "studentProfiles")),
-          getDocs(collection(db, "progress"))
-        ]);
-        const progressByUid = new Map();
-        progressSnap.docs.forEach((progressDoc) => {
-          const record = progressDoc.data();
-          if (!record.studentUid) return;
-          if (!progressByUid.has(record.studentUid)) progressByUid.set(record.studentUid, []);
-          progressByUid.get(record.studentUid).push(record);
-        });
-        const students = studentsSnap.docs.map((studentDoc) => ({
-          uid: studentDoc.id,
-          ...studentDoc.data(),
-          progress: progressByUid.get(studentDoc.id) || []
-        }));
-        const list = $("studentsList");
-        $("studentsSummary").textContent = `${students.length} طالب مسجل`;
-        if (!students.length) {
-          list.innerHTML = '<p style="color:var(--gray); font-size:13px;">📭 لا يوجد طلاب مسجلون حتى الآن</p>';
-          return;
-        }
-        list.innerHTML = students.map((student) => `
+    function renderStudents() {
+      const progressByUid = new Map();
+      studentsProgress.forEach((record) => {
+        if (!record.studentUid) return;
+        if (!progressByUid.has(record.studentUid)) progressByUid.set(record.studentUid, []);
+        progressByUid.get(record.studentUid).push(record);
+      });
+      const students = studentsProfiles.map((student) => ({
+        ...student,
+        progress: progressByUid.get(student.uid) || []
+      }));
+      const list = $("studentsList");
+      $("studentsSummary").textContent = `${students.length} طالب مسجل`;
+      if (!students.length) {
+        list.innerHTML = '<p style="color:var(--gray); font-size:13px;">📭 لا يوجد طلاب مسجلون حتى الآن</p>';
+        return;
+      }
+      list.innerHTML = students.map((student) => {
+        const lastSeen = student.lastSeen?.toMillis?.() || 0;
+        const isOnline = student.online === true && lastSeen > Date.now() - 90_000;
+        return `
           <div class="student-card">
             <div class="student-head">
               <strong><i class="fas fa-user"></i> ${esc(student.email || student.uid)}</strong>
-              <small>${student.progress.length ? `${student.progress.length} كورس` : "لم يبدأ أي كورس"}</small>
+              <span class="student-status ${isOnline ? "online" : "offline"}"><i class="fas fa-circle"></i> ${isOnline ? "نشط الآن" : "غير نشط"}</span>
             </div>
+            <div class="student-course-count">${student.progress.length ? `${student.progress.length} كورس` : "لم يبدأ أي كورس"}</div>
             ${student.progress.length ? student.progress.map((record) => `
               <div class="student-progress">
                 <div class="student-course">${esc(record.courseTitle || record.courseId)}<small>${Number(record.completedCount) || 0} من ${Number(record.totalLessons) || 0} دروس مكتملة</small></div>
                 <div class="student-progress-track"><span style="width:${Math.min(100, Math.max(0, Number(record.percent) || 0))}%"></span></div>
                 <div class="student-percent">${Math.min(100, Math.max(0, Number(record.percent) || 0))}%</div>
               </div>`).join("") : '<p style="color:var(--gray); font-size:13px;">لم يبدأ الطالب أي درس بعد</p>'}
-          </div>`).join("");
-      } catch {
-        $("studentsSummary").textContent = "تعذر تحميل البيانات";
-        $("studentsList").innerHTML = '<p style="color:#ff6464; font-size:13px;">⚠️ خطأ في تحميل الطلبة — راجع قواعد Firestore</p>';
-      }
+          </div>`;
+      }).join("");
     }
 
-    $("refreshStudentsBtn").addEventListener("click", loadStudents);
+    function subscribeToStudents() {
+      requireAdminUi();
+      stopStudentsProfiles?.();
+      stopStudentsProgress?.();
+      stopStudentsProfiles = onSnapshot(collection(db, "studentProfiles"), (snapshot) => {
+        studentsProfiles = snapshot.docs.map((studentDoc) => ({ uid: studentDoc.id, ...studentDoc.data() }));
+        renderStudents();
+      }, () => {
+        $("studentsSummary").textContent = "تعذر تحميل البيانات";
+        $("studentsList").innerHTML = '<p style="color:#ff6464; font-size:13px;">⚠️ خطأ في تحميل الطلبة — راجع قواعد Firestore</p>';
+      });
+      stopStudentsProgress = onSnapshot(collection(db, "progress"), (snapshot) => {
+        studentsProgress = snapshot.docs.map((progressDoc) => progressDoc.data());
+        renderStudents();
+      });
+    }
+
+    $("refreshStudentsBtn").addEventListener("click", renderStudents);
 
     let selectedAdminStudent = null;
 
@@ -944,7 +959,7 @@ function svgIcon(name, className = "") {
         $("studentEmail").value = "";
         $("studentPassword").value = "";
         showMsg("panelMsg", "✅ تم تسجيل الطالب بنجاح ويمكنه الدخول الآن", true);
-        await loadStudents();
+        renderStudents();
         await loadAdminStudentOptions();
       } catch (error) {
         if (createdUser) {
@@ -1332,47 +1347,6 @@ function svgIcon(name, className = "") {
       if (event.target?.id === "imageCropModal") closeImageEditor();
     });
 
-    // ===== استيراد محتوى تجريبي =====
-    $("seedBtn").addEventListener("click", async () => {
-      try { requireAdminUi(); } catch { showMsg("panelMsg", "❌ غير مصرح", false); return; }
-      if (!confirm("هيتم إضافة كورس تجريبي فيه 3 دروس.. متأكد؟")) return;
-      const DEMO_URL =
-        "https://play.gumlet.io/embed/6a915228ceaa98dd5e09c605?background=false&autoplay=false&loop=false&disable_player_controls=false";
-      try {
-        const ref = await addDoc(collection(db, "courses"), {
-          imageUrl: "",
-          imagePositionX: 50,
-          imagePositionY: 50,
-          imageZoom: 100,
-          order: (coursesCache.length + 1),
-          title: "الكورس الأول",
-          short: "وصف قصير عن الكورس — عدّله من لوحة الإدارة",
-          description: "وصف تفصيلي للكورس بيظهر فوق قائمة الدروس — عدّله من لوحة الإدارة.",
-          videoCount: 3
-        });
-        const lessons = [
-          { title: "النحو — المعلقات", instructor: "محمد صلاح", duration: "9 دقائق" },
-          { title: "النحو — إسناد الأفعال", instructor: "محمد صلاح", duration: "8 دقائق" },
-          { title: "الأدب — تطور الشعر", instructor: "محمد صلاح", duration: "10 دقائق" }
-        ];
-        let i = 1;
-        for (const l of lessons) {
-          await addDoc(collection(db, "courses", ref.id, "videos"), {
-            ...l,
-            order: i++,
-            videoUrl: DEMO_URL,
-            imageUrl: "",
-            imagePositionX: 50,
-            imagePositionY: 50,
-            imageZoom: 100
-          });
-        }
-        showMsg("panelMsg", "✅ تم الاستيراد — عدّل العناوين واللينكات براحتك", true);
-        loadCourses();
-      } catch {
-        showMsg("panelMsg", "❌ خطأ في الاستيراد — راجع قواعد Firestore", false);
-      }
-    });
   </script>
 <script type="module" src="https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495" integrity="sha512-iIg7k2xntmwu6/uSb5tpc/hySgZc4eoL31yB29W6tJFo2akwjPWcEqnCEdJvGexCL0KEQwVYv5BlowfhVz26hg==" data-cf-beacon='{"version":"2024.11.0","token":"1954b47c125f43f8b4338b3c4f804e4f","spa":2}' crossorigin="anonymous"></script>
 <script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a3d0845fec4fe17f',t:'MTc4OTczNjI1Mw=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>

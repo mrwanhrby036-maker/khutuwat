@@ -99,9 +99,12 @@ service cloud.firestore {
     }
 
     function validStudentProfile() {
-      return request.resource.data.keys().hasOnly(['email', 'lastLoginAt'])
+      return request.resource.data.keys().hasOnly(['email', 'lastLoginAt', 'online', 'lastSeen'])
         && request.resource.data.keys().hasAll(['email'])
-        && validOptionalText(request.resource.data.email, 254);
+        && validOptionalText(request.resource.data.email, 254)
+        && (!('online' in request.resource.data) || request.resource.data.online is bool)
+        && (!('lastLoginAt' in request.resource.data) || request.resource.data.lastLoginAt is timestamp)
+        && (!('lastSeen' in request.resource.data) || request.resource.data.lastSeen is timestamp);
     }
 
     function validProgress() {

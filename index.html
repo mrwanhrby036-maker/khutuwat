@@ -182,6 +182,33 @@
     </div>
   </section>
  
+  <!-- ===== تقييمات وتعليقات الطلبة ===== -->
+  <section class="section reviews-section" id="reviews">
+    <div class="container">
+      <div class="section-head fade-up">
+        <span class="section-tag"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M5 5.5A2.5 2.5 0 0 1 7.5 3h9A2.5 2.5 0 0 1 19 5.5v6a2.5 2.5 0 0 1-2.5 2.5H11l-5 4v-4.2a2.5 2.5 0 0 1-1-2V5.5Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="m12 6.5.9 1.8 2 .3-1.5 1.4.4 2-1.8-1-1.8 1 .4-2-1.5-1.4 2-.3.9-1.8Z" fill="currentColor"/></svg> آراء الطلبة</span>
+        <h2 class="section-title">شاركنا <span class="gold-text">تجربتك</span></h2>
+        <p class="section-desc">تقييمك يساعدنا على تحسين المنصة ومحتواها</p>
+      </div>
+      <div class="reviews-layout fade-up">
+        <div class="review-form-panel" id="reviewFormPanel">
+          <h3><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m12 3 2.1 5.1 5.4.4-4.1 3.5 1.3 5.3L12 14.4l-4.7 2.9 1.3-5.3-4.1-3.5 5.4-.4L12 3Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg> تقييمك يهمنا</h3>
+          <p class="review-login-note" id="reviewLoginNote">سجّل الدخول لإضافة تقييم وتعليق.</p>
+          <div class="star-rating" id="starRating" role="radiogroup" aria-label="تقييم المنصة من خمس نجوم">
+            <button type="button" data-rating="1" aria-label="نجمة واحدة"></button>
+            <button type="button" data-rating="2" aria-label="نجمتان"></button>
+            <button type="button" data-rating="3" aria-label="ثلاث نجوم"></button>
+            <button type="button" data-rating="4" aria-label="أربع نجوم"></button>
+            <button type="button" data-rating="5" aria-label="خمس نجوم"></button>
+          </div>
+          <textarea id="reviewComment" maxlength="1000" placeholder="اكتب ملاحظاتك عن المميزات والعيوب..."></textarea>
+          <button class="btn btn-gold" id="submitReviewBtn" type="button"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m4 4 16 8-16 8 3-8-3-8Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M7 12h13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg> إرسال التقييم</button>
+        </div>
+        <div class="reviews-list" id="reviewsList"><p class="reviews-empty">جاري تحميل التقييمات...</p></div>
+      </div>
+    </div>
+  </section>
+
   <!-- ===== تذييل الصفحة ===== -->
   <footer>
     <div class="container">

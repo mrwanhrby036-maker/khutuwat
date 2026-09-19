@@ -140,6 +140,14 @@
     .student-status.online { color: #35d99a; }
     .student-status.offline { color: var(--gray); }
     .student-course-count { color: var(--gray); font-size: 12px; margin: -6px 0 10px; }
+    .review-admin-item { background: var(--black-4); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-bottom: 10px; }
+    .review-admin-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+    .review-admin-email { color: var(--gold); font-weight: 700; overflow-wrap: anywhere; }
+    .review-admin-stars { color: var(--gold); letter-spacing: 2px; direction: ltr; }
+    .review-admin-stars .empty { color: var(--gray); }
+    .review-admin-comment { color: var(--gray-light); font-size: 13px; line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; margin-bottom: 10px; }
+    .review-admin-status { color: var(--gray); font-size: 12px; }
+    .review-admin-actions { display: flex; gap: 7px; flex-wrap: wrap; }
     .student-progress { display: grid; grid-template-columns: minmax(150px, 1fr) 90px 55px; align-items: center; gap: 12px; padding: 10px 0; border-top: 1px solid rgba(255, 215, 0, 0.08); }
     .student-course { min-width: 0; color: var(--gray-light); font-size: 13px; overflow-wrap: anywhere; }
     .student-course small { display: block; color: var(--gray); margin-top: 3px; }
@@ -395,6 +403,17 @@
           <button class="btn btn-outline btn-sm" id="refreshStudentsBtn"><i class="fas fa-rotate"></i> تحديث</button>
         </div>
         <div id="studentsList"><p style="color:var(--gray); font-size:13px;">⏳ جاري التحميل...</p></div>
+      </div>
+
+      <div class="card">
+        <div class="student-toolbar">
+          <div>
+            <h2 style="margin-bottom:4px;"><i class="fas fa-comments"></i> تعليقات الطلبة</h2>
+            <p id="reviewsSummary">جاري تحميل التعليقات...</p>
+          </div>
+          <button class="btn btn-outline btn-sm" id="refreshReviewsBtn" type="button"><i class="fas fa-rotate"></i> تحديث</button>
+        </div>
+        <div id="reviewsAdminList"><p style="color:var(--gray); font-size:13px;">⏳ جاري التحميل...</p></div>
       </div>
 
       <!-- نموذج الكورس -->
@@ -745,6 +764,7 @@ function svgIcon(name, className = "") {
         $("whoEmail").textContent = u.email || "";
         loadCourses();
         subscribeToStudents();
+        loadAdminReviews();
         loadAdminStudentOptions();
       } else {
         stopStudentsProfiles?.();
@@ -837,6 +857,60 @@ function svgIcon(name, className = "") {
     }
 
     $("refreshStudentsBtn").addEventListener("click", renderStudents);
+
+    function reviewAdminStars(rating) {
+      const safeRating = Math.min(5, Math.max(0, Number(rating) || 0));
+      return Array.from({ length: 5 }, (_, index) => `<span class="${index < safeRating ? "" : "empty"}">★</span>`).join("");
+    }
+
+    async function loadAdminReviews() {
+      try {
+        requireAdminUi();
+        const snapshot = await getDocs(collection(db, "reviews"));
+        const reviews = snapshot.docs
+          .map((reviewDoc) => ({ id: reviewDoc.id, ...reviewDoc.data() }))
+          .sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
+        $("reviewsSummary").textContent = `${reviews.length} تقييم`;
+        $("reviewsAdminList").innerHTML = reviews.length ? reviews.map((review) => `
+          <article class="review-admin-item">
+            <div class="review-admin-head">
+              <span class="review-admin-email">${esc(review.studentEmail || review.studentUid)}</span>
+              <span class="review-admin-stars" aria-label="${Number(review.rating) || 0} من 5">${reviewAdminStars(review.rating)}</span>
+            </div>
+            <p class="review-admin-comment">${esc(review.comment || "")}</p>
+            <div class="review-admin-head">
+              <span class="review-admin-status">الحالة: ${review.status === "approved" ? "منشور" : "في انتظار المراجعة"}</span>
+              <div class="review-admin-actions">
+                ${review.status !== "approved" ? `<button class="btn btn-gold btn-sm" type="button" data-review-action="approve" data-review-id="${esc(review.id)}">اعتماد</button>` : ""}
+                <button class="btn btn-red btn-sm" type="button" data-review-action="delete" data-review-id="${esc(review.id)}">حذف</button>
+              </div>
+            </div>
+          </article>`).join("") : '<p style="color:var(--gray); font-size:13px;">لا توجد تعليقات حتى الآن</p>';
+      } catch {
+        $("reviewsSummary").textContent = "تعذر تحميل التعليقات";
+        $("reviewsAdminList").innerHTML = '<p style="color:#ff6464; font-size:13px;">⚠️ تعذر تحميل التعليقات</p>';
+      }
+    }
+
+    $("refreshReviewsBtn").addEventListener("click", loadAdminReviews);
+    $("reviewsAdminList").addEventListener("click", async (event) => {
+      const button = event.target.closest("[data-review-action]");
+      if (!button) return;
+      try {
+        requireAdminUi();
+        const reviewRef = doc(db, "reviews", button.dataset.reviewId);
+        if (button.dataset.reviewAction === "approve") {
+          await updateDoc(reviewRef, { status: "approved" });
+          showMsg("panelMsg", "✅ تم اعتماد التعليق ونشره", true);
+        } else if (confirm("هل تريد حذف هذا التعليق؟")) {
+          await deleteDoc(reviewRef);
+          showMsg("panelMsg", "✅ تم حذف التعليق", true);
+        }
+        loadAdminReviews();
+      } catch {
+        showMsg("panelMsg", "❌ تعذر تحديث التعليق", false);
+      }
+    });
 
     let selectedAdminStudent = null;
 

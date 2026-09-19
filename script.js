@@ -11,10 +11,13 @@ import {
   collection,
   getDocs,
   getDoc,
+  addDoc,
   setDoc,
   doc,
   query,
   orderBy,
+  where,
+  limit,
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
  
@@ -153,6 +156,12 @@ function svgIcon(name, className = "") {
   };
   return icons[name] || "";
 }
+
+function reviewStars(rating) {
+  const safeRating = Math.min(5, Math.max(0, Number(rating) || 0));
+  const starPath = "M12 3.8l2.3 4.7 5.2.8-3.8 3.7.9 5.2-4.6-2.4-4.6 2.4.9-5.2-3.8-3.7 5.2-.8L12 3.8Z";
+  return `<span class="review-stars" aria-label="${safeRating} من 5 نجوم">${Array.from({ length: 5 }, (_, index) => `<svg class="${index < safeRating ? "" : "empty"}" viewBox="0 0 24 24" aria-hidden="true"><path d="${starPath}" fill="currentColor"/></svg>`).join("")}</span>`;
+}
  
  
 // ===== الكورسات بتتقرا من Firebase Firestore =====
@@ -162,7 +171,7 @@ let COURSES = [];
 let coursesLoaded = false; // false = لسه بيتحمل من Firestore (نعرض سكيلتون)، true = وصل الرد (فاضي أو فيه كورسات)
 // ===== المتغيرات العامة =====
 let currentUser = null;
-let sections = ["home", "courses", "features"];
+let sections = ["home", "courses", "features", "reviews"];
 let currentSectionIndex = 0;
 let pendingCourseId = null;
 let freshLogin = false; // true فقط لو المستخدم ضغط "دخول" الآن (مش استعادة جلسة قديمة)
@@ -199,6 +208,7 @@ window.addEventListener("load", () => {
   createParticles();
   renderCourseShowcase();
   loadCoursesFromFirestore();
+  loadPublicReviews();
   runIntro();
   updateScrollProgress();
 });
@@ -1307,6 +1317,10 @@ onAuthStateChanged(auth, (u) => {
   stopPresenceTracking();
   currentUser = u ? { uid: u.uid, email: u.email || "" } : null;
   updateLoginUI();
+  const reviewNote = document.getElementById("reviewLoginNote");
+  const reviewButton = document.getElementById("submitReviewBtn");
+  if (reviewNote) reviewNote.textContent = u ? "اختر عدد النجوم واكتب ملاحظاتك، ثم أرسلها للمراجعة." : "سجّل الدخول لإضافة تقييم وتعليق.";
+  if (reviewButton) reviewButton.disabled = !u;
  
   if (u) {
     const updatePresence = (online) => setDoc(doc(db, "studentProfiles", u.uid), {
@@ -1337,6 +1351,48 @@ onAuthStateChanged(auth, (u) => {
       playWelcomeCelebration();
     }
     freshLogin = false;
+  }
+});
+
+let selectedReviewRating = 0;
+document.querySelectorAll("#starRating button").forEach((button) => {
+  button.addEventListener("click", () => {
+    selectedReviewRating = Number(button.dataset.rating) || 0;
+    document.querySelectorAll("#starRating button").forEach((star) => {
+      star.classList.toggle("selected", Number(star.dataset.rating) <= selectedReviewRating);
+    });
+  });
+});
+
+document.getElementById("submitReviewBtn")?.addEventListener("click", async () => {
+  if (!currentUser) {
+    showToast("error", "⚠️ تسجيل الدخول مطلوب", "سجّل الدخول أولًا لإرسال تقييمك");
+    return;
+  }
+  const comment = limitText(document.getElementById("reviewComment")?.value, 1000);
+  if (selectedReviewRating < 1 || !comment) {
+    showToast("error", "⚠️ أكمل التقييم", "اختر عدد النجوم واكتب تعليقك أولًا");
+    return;
+  }
+  const button = document.getElementById("submitReviewBtn");
+  button.disabled = true;
+  try {
+    await addDoc(collection(db, "reviews"), {
+      studentUid: currentUser.uid,
+      studentEmail: currentUser.email || "",
+      rating: selectedReviewRating,
+      comment,
+      status: "pending",
+      createdAt: serverTimestamp()
+    });
+    document.getElementById("reviewComment").value = "";
+    selectedReviewRating = 0;
+    document.querySelectorAll("#starRating button").forEach((star) => star.classList.remove("selected"));
+    showToast("success", "✅ شكرًا لرأيك", "تم إرسال تقييمك وسيظهر بعد مراجعته");
+  } catch {
+    showToast("error", "⚠️ تعذر الإرسال", "حاول مرة أخرى بعد التأكد من الاتصال");
+  } finally {
+    button.disabled = false;
   }
 });
  
@@ -1446,3 +1502,28 @@ document.querySelectorAll('a[href^="#"]').forEach((l) => {
     document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
   });
 });
+
+async function loadPublicReviews() {
+  const list = document.getElementById("reviewsList");
+  if (!list) return;
+  try {
+    const snap = await getDocs(query(
+      collection(db, "reviews"),
+      where("status", "==", "approved"),
+      limit(30)
+    ));
+    const reviews = snap.docs
+      .map((reviewDoc) => ({ id: reviewDoc.id, ...reviewDoc.data() }))
+      .sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
+    list.innerHTML = reviews.length ? reviews.map((review) => `
+      <article class="review-item">
+        <div class="review-item-head">
+          <span class="review-item-name">طالب من منصتنا</span>
+          ${reviewStars(review.rating)}
+        </div>
+        <p>${escapeHtml(limitText(review.comment, 1000))}</p>
+      </article>`).join("") : '<p class="reviews-empty">لم تصل تقييمات منشورة بعد. كن أول من يشاركنا رأيه.</p>';
+  } catch {
+    list.innerHTML = '<p class="reviews-empty">التقييمات غير متاحة حاليًا.</p>';
+  }
+}

@@ -2406,3 +2406,136 @@ body.revealed .hero-image {
     animation: none;
   }
 }
+
+/* ===== تقييمات وتعليقات الطلبة ===== */
+.reviews-layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.78fr) minmax(0, 1.22fr);
+  gap: 22px;
+  align-items: start;
+}
+
+.review-form-panel,
+.review-item {
+  background: linear-gradient(145deg, rgba(255, 215, 0, 0.08), rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+}
+
+.review-form-panel h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--gold);
+  margin-bottom: 8px;
+}
+
+.review-login-note,
+.reviews-empty {
+  color: var(--gray);
+  font-size: 13px;
+  margin-bottom: 15px;
+}
+
+.star-rating {
+  display: flex;
+  direction: rtl;
+  gap: 4px;
+  margin-bottom: 16px;
+}
+
+.star-rating button {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: rgba(255, 215, 0, 0.25);
+  cursor: pointer;
+}
+
+.star-rating button::before,
+.review-stars svg {
+  content: "";
+  display: block;
+  width: 25px;
+  height: 25px;
+  margin: auto;
+  background: currentColor;
+  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 94%, 50% 72%, 21% 94%, 32% 57%, 2% 35%, 39% 35%);
+}
+
+.star-rating button:hover,
+.star-rating button.selected,
+.star-rating button:focus-visible {
+  color: var(--gold);
+}
+
+.review-form-panel textarea {
+  width: 100%;
+  min-height: 112px;
+  resize: vertical;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  color: var(--white);
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font: inherit;
+}
+
+.review-form-panel textarea:focus {
+  outline: none;
+  border-color: var(--gold);
+}
+
+.reviews-list {
+  display: grid;
+  gap: 12px;
+}
+
+.review-item {
+  padding: 18px 20px;
+}
+
+.review-item-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.review-item-name {
+  color: var(--gold-light);
+  font-weight: 800;
+}
+
+.review-stars {
+  display: inline-flex;
+  gap: 2px;
+  direction: ltr;
+}
+
+.review-stars svg {
+  width: 16px;
+  height: 16px;
+  color: var(--gold);
+}
+
+.review-stars svg.empty {
+  color: rgba(255, 215, 0, 0.18);
+}
+
+.review-item p {
+  color: var(--gray-light);
+  font-size: 14px;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 760px) {
+  .reviews-layout { grid-template-columns: 1fr; }
+}

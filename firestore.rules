@@ -128,6 +128,23 @@ service cloud.firestore {
         && request.resource.data.completedCount <= request.resource.data.totalLessons;
     }
 
+    function validReview() {
+      return request.resource.data.keys().hasOnly([
+          'studentUid', 'studentEmail', 'rating', 'comment', 'status', 'createdAt'
+        ])
+        && request.resource.data.keys().hasAll([
+          'studentUid', 'studentEmail', 'rating', 'comment', 'status', 'createdAt'
+        ])
+        && request.resource.data.studentUid == request.auth.uid
+        && validOptionalText(request.resource.data.studentEmail, 254)
+        && request.resource.data.rating is int
+        && request.resource.data.rating >= 1
+        && request.resource.data.rating <= 5
+        && validText(request.resource.data.comment, 1, 1000)
+        && request.resource.data.status == 'pending'
+        && request.resource.data.createdAt is timestamp;
+    }
+
     match /admins/{adminUid} {
       allow get: if signedIn() && (request.auth.uid == adminUid || isAdmin());
       allow list: if false;
@@ -161,6 +178,12 @@ service cloud.firestore {
       allow read: if isAdmin() || (signedIn() && resource.data.studentUid == request.auth.uid);
       allow create, update: if signedIn() && request.resource.data.studentUid == request.auth.uid && validProgress();
       allow delete: if isAdmin() || (signedIn() && resource.data.studentUid == request.auth.uid);
+    }
+
+    match /reviews/{reviewId} {
+      allow read: if isAdmin() || resource.data.status == 'approved';
+      allow create: if signedIn() && validReview();
+      allow update, delete: if isAdmin();
     }
 
     match /{document=**} {

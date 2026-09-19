@@ -16,6 +16,13 @@ service cloud.firestore {
         && get(adminDocumentPath()).data.active == true;
     }
 
+    // التسجيل في Firebase Auth مفتوح لأي شخص عنده مفتاح الـ API العام، لذلك signedIn() وحدها
+    // لا تعني أنه طالب مصرح له. الطالب المصرح له = له ملف في studentProfiles أنشأه الأدمن.
+    function isEnrolledStudent() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/studentProfiles/$(request.auth.uid));
+    }
+
     function validText(value, min, max) {
       return value is string && value.size() >= min && value.size() <= max;
     }
@@ -120,6 +127,7 @@ service cloud.firestore {
         && validText(request.resource.data.courseId, 1, 160)
         && validText(request.resource.data.courseTitle, 1, 120)
         && request.resource.data.completedLessonIds is list
+        && request.resource.data.completedLessonIds.size() <= 1000
         && request.resource.data.completedCount is int
         && request.resource.data.totalLessons is int
         && validPercent(request.resource.data.percent)
@@ -148,7 +156,9 @@ service cloud.firestore {
     match /admins/{adminUid} {
       allow get: if signedIn() && (request.auth.uid == adminUid || isAdmin());
       allow list: if false;
-      allow create, update: if isAdmin() && validAdminData();
+      allow create: if isAdmin() && validAdminData();
+      allow update: if isAdmin() && validAdminData()
+        && (request.auth.uid != adminUid || request.resource.data.active == true);
       allow delete: if isAdmin() && request.auth.uid != adminUid;
     }
 
@@ -160,7 +170,7 @@ service cloud.firestore {
 
       match /videos/{videoId} {
         // فيه videoUrl جوه المستند ده — أي حساب مسجّل دخول بس يقدر يقراه
-        allow read: if signedIn();
+        allow read: if isAdmin() || isEnrolledStudent();
         allow create, update: if isAdmin() && validLessonData();
         allow delete: if isAdmin();
       }
@@ -168,21 +178,28 @@ service cloud.firestore {
 
     match /studentProfiles/{studentUid} {
       allow read: if isAdmin() || (signedIn() && request.auth.uid == studentUid);
-      allow create: if (isAdmin() || (signedIn() && request.auth.uid == studentUid))
-        && validStudentProfile();
+      allow create: if isAdmin() && validStudentProfile();
       allow update: if signedIn() && request.auth.uid == studentUid && validStudentProfile();
       allow delete: if isAdmin();
     }
 
     match /progress/{progressId} {
-      allow read: if isAdmin() || (signedIn() && resource.data.studentUid == request.auth.uid);
-      allow create, update: if signedIn() && request.resource.data.studentUid == request.auth.uid && validProgress();
+      allow get: if isAdmin()
+        || (signedIn() && (resource == null || resource.data.studentUid == request.auth.uid));
+      allow list: if isAdmin() || (signedIn() && resource.data.studentUid == request.auth.uid);
+      // معرّف المستند لازم يبدأ بـ uid صاحبه، ولا يمكن تعديل مستند طالب آخر.
+      allow create: if isEnrolledStudent()
+        && progressId.matches(request.auth.uid + '_.+')
+        && validProgress();
+      allow update: if isEnrolledStudent()
+        && resource.data.studentUid == request.auth.uid
+        && validProgress();
       allow delete: if isAdmin() || (signedIn() && resource.data.studentUid == request.auth.uid);
     }
 
     match /reviews/{reviewId} {
       allow read: if isAdmin() || resource.data.status == 'approved';
-      allow create: if signedIn() && validReview();
+      allow create: if isEnrolledStudent() && validReview();
       allow update, delete: if isAdmin();
     }
 

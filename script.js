@@ -1323,23 +1323,52 @@ onAuthStateChanged(auth, (u) => {
   if (reviewButton) reviewButton.disabled = !u;
  
   if (u) {
-    const updatePresence = (online) => setDoc(doc(db, "studentProfiles", u.uid), {
-      email: u.email || "",
-      online,
-      lastSeen: serverTimestamp(),
-      ...(online ? { lastLoginAt: serverTimestamp() } : {})
-    }, { merge: true }).catch(() => {});
-    updatePresence(true);
-    const presenceTimer = window.setInterval(() => updatePresence(true), 25_000);
-    const handleVisibility = () => updatePresence(document.visibilityState === "visible");
-    document.addEventListener("visibilitychange", handleVisibility);
+    // تتبع الأونلاين: كتابة عند تغيّر الحالة فقط + نبضة كل دقيقتين أثناء ظهور الصفحة
+    // (لوحة الأدمن تعتبر الطالب أونلاين لو آخر نبضة خلال 3 دقائق — راجع admin.html)
+    const PRESENCE_HEARTBEAT_MS = 120_000;
+    let lastSentOnline = null;
+    let loginRecorded = false;
+    const writePresence = (online) => {
+      lastSentOnline = online;
+      const isLoginWrite = online && !loginRecorded;
+      if (isLoginWrite) loginRecorded = true;
+      return setDoc(doc(db, "studentProfiles", u.uid), {
+        email: u.email || "",
+        online,
+        lastSeen: serverTimestamp(),
+        ...(isLoginWrite ? { lastLoginAt: serverTimestamp() } : {})
+      }, { merge: true }).catch((error) => {
+        lastSentOnline = null;
+        if (isLoginWrite) loginRecorded = false;
+        console.warn("presence update failed:", error?.code || error?.name);
+      });
+    };
+    const syncPresenceWithVisibility = () => {
+      const isVisible = document.visibilityState === "visible";
+      if (isVisible !== lastSentOnline) writePresence(isVisible);
+    };
+    const sendHeartbeat = () => {
+      if (document.visibilityState === "visible") writePresence(true);
+    };
+    const markOffline = () => {
+      if (lastSentOnline !== false) writePresence(false);
+    };
+    const handlePageShow = (event) => {
+      if (event.persisted) syncPresenceWithVisibility();
+    };
+    syncPresenceWithVisibility();
+    const presenceTimer = window.setInterval(sendHeartbeat, PRESENCE_HEARTBEAT_MS);
+    document.addEventListener("visibilitychange", syncPresenceWithVisibility);
+    window.addEventListener("pagehide", markOffline);
+    window.addEventListener("pageshow", handlePageShow);
     const stopTracking = () => {
-      updatePresence(false);
       window.clearInterval(presenceTimer);
-      document.removeEventListener("visibilitychange", handleVisibility);
+      document.removeEventListener("visibilitychange", syncPresenceWithVisibility);
+      window.removeEventListener("pagehide", markOffline);
+      window.removeEventListener("pageshow", handlePageShow);
+      markOffline();
     };
     stopPresenceTracking = stopTracking;
-    window.addEventListener("beforeunload", stopTracking, { once: true });
     closeAuthModal();
     // لو فتح تسجيل الدخول عشان يدخل كورس محدد → دخّله على طول مع احتفال الكورس
     if (pendingCourseId) {

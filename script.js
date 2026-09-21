@@ -1351,7 +1351,8 @@ onAuthStateChanged(auth, (u) => {
       if (document.visibilityState === "visible") writePresence(true);
     };
     const markOffline = () => {
-      if (lastSentOnline !== false) writePresence(false);
+      if (lastSentOnline === false) return undefined;
+      return writePresence(false);
     };
     const handlePageShow = (event) => {
       if (event.persisted) syncPresenceWithVisibility();
@@ -1366,7 +1367,7 @@ onAuthStateChanged(auth, (u) => {
       document.removeEventListener("visibilitychange", syncPresenceWithVisibility);
       window.removeEventListener("pagehide", markOffline);
       window.removeEventListener("pageshow", handlePageShow);
-      markOffline();
+      return markOffline();
     };
     stopPresenceTracking = stopTracking;
     closeAuthModal();
@@ -1485,6 +1486,8 @@ function loginErrorMessage(e) {
  
 async function handleLogout() {
   try {
+    // الطالب يصبح أوفلاين قبل الخروج (بعد signOut لا تسمح القواعد بالكتابة)، مع مهلة حتى لا يتعطل الخروج بلا إنترنت
+    await Promise.race([stopPresenceTracking(), new Promise((resolve) => window.setTimeout(resolve, 1500))]);
     await signOut(auth);
     closeCourseArea();
     showToast("success", "👋 وداعاً!", "تم تسجيل الخروج بنجاح");

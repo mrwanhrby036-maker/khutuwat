@@ -185,6 +185,30 @@
       font-weight: 700;
       font-size: 14px;
     }
+    .lesson-target {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin: 4px 0 12px;
+      padding: 11px 14px;
+      color: var(--gray-light);
+      background: linear-gradient(90deg, rgba(255, 215, 0, 0.18), rgba(255, 165, 0, 0.12));
+      border: 1px solid rgba(255, 215, 0, 0.5);
+      border-right: 5px solid var(--gold);
+      border-radius: var(--radius);
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .lesson-target strong {
+      color: var(--gold-light);
+      font-size: 15px;
+    }
+    .lesson-target[hidden] { display: none; }
+    #saveVideoBtn:disabled {
+      opacity: 0.58;
+      cursor: not-allowed;
+    }
     #panelMsg.msg.ok,
     #panelMsg.msg.err {
       position: fixed;
@@ -417,7 +441,7 @@
       </div>
 
       <!-- نموذج الكورس -->
-      <div class="card">
+      <div class="card" id="courseFormPanel">
         <h2 id="courseFormTitle"><i class="fas fa-book"></i> إضافة كورس جديد</h2>
         <div class="row">
           <label style="flex:0 0 110px;">الترتيب
@@ -490,8 +514,12 @@
         <label>لينك الفيديو * (Gumlet / يوتيوب / جوجل درايف)
           <input type="url" id="vUrl" placeholder="https://play.gumlet.io/embed/..." dir="ltr">
         </label>
+        <div class="lesson-target" id="videoTargetCourse" role="status" aria-live="polite" hidden>
+          <span>الكورس المستهدف لحفظ الدرس:</span>
+          <strong id="videoTargetCourseName"></strong>
+        </div>
         <div class="actions" style="margin-top:5px; margin-bottom:18px;">
-          <button class="btn btn-gold" id="saveVideoBtn">
+          <button class="btn btn-gold" id="saveVideoBtn" type="button" disabled>
             <i class="fas fa-floppy-disk"></i> حفظ الدرس
           </button>
           <button class="btn btn-outline hidden" id="cancelVideoBtn">إلغاء التعديل</button>
@@ -658,21 +686,28 @@
       for (let index = 0; index < bytes.length; index += chunkSize) {
         binary += String.fromCharCode(...bytes.subarray(index, index + chunkSize));
       }
+      const user = auth.currentUser;
+      if (!user) throw new Error("AUTH_REQUIRED");
+      const idToken = await user.getIdToken();
+      if (!idToken) throw new Error("AUTH_REQUIRED");
       const response = await fetch("/api/upload-image", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Authorization": `Bearer ${idToken}`,
+          "Content-Type": "application/json"
+        },
         body: JSON.stringify({ image: btoa(binary), type: file.type })
       });
       const result = await response.json().catch(() => null);
       if (!response.ok || !result?.success || !result?.data?.url) throw new Error("IMAGE_UPLOAD_FAILED");
       return cleanImageUrl(result.data.url);
     }
-    async function resolveImageUrl(inputId, fileId, existingUrl = "") {
+    async function resolveImageUrl(inputId, fileId, existingUrl = "", shouldApply = () => true) {
       const file = $(fileId).files?.[0];
       if (!file) return cleanImageUrl(existingUrl || $(inputId).value);
       const url = await uploadImageToImgBB(file);
       if (!url) throw new Error("IMAGE_UPLOAD_FAILED");
-      $(inputId).value = url;
+      if (shouldApply()) $(inputId).value = url;
       return url;
     }
     function validateCourseForm(imageUrl = "") {
@@ -710,6 +745,8 @@
     let editingCourseId = null;
     let editingVideoId = null;
     let selectedCourseId = null;
+    let videoContextVersion = 0;
+    let videoSaveInProgress = false;
     let coursesCache = [];
     let studentsProfiles = [];
     let studentsProgress = [];
@@ -1064,6 +1101,9 @@ function svgIcon(name, className = "") {
       try {
         const snap = await getDocs(query(collection(db, "courses"), orderBy("order")));
         coursesCache = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        if (selectedCourseId && !coursesCache.some((course) => course.id === selectedCourseId)) {
+          clearVideoSelection();
+        }
         if (!coursesCache.length) {
           list.innerHTML = '<p style="color:var(--gray); font-size:13px;">📭 لا توجد كورسات — أضف كورس من النموذج فوق أو استورد المحتوى التجريبي</p>';
           return;
@@ -1091,8 +1131,13 @@ function svgIcon(name, className = "") {
         );
         list.querySelectorAll("[data-edit]").forEach((b) =>
           b.addEventListener("click", () => {
+            if (videoSaveInProgress) {
+              showMsg("panelMsg", "⚠️ انتظر انتهاء حفظ الدرس قبل تعديل الكورس", false);
+              return;
+            }
             const c = coursesCache.find((x) => x.id === b.dataset.edit);
             if (!c) return;
+            clearVideoSelection();
             editingCourseId = c.id;
             $("courseFormTitle").innerHTML = '<i class="fas fa-pen"></i> تعديل الكورس';
             $("cImage").value = c.imageUrl || "";
@@ -1122,8 +1167,13 @@ function svgIcon(name, className = "") {
     }
 
     $("saveCourseBtn").addEventListener("click", async () => {
+      if (videoSaveInProgress) {
+        showMsg("panelMsg", "⚠️ انتظر انتهاء حفظ الدرس أولًا", false);
+        return;
+      }
       let data;
       const button = $("saveCourseBtn");
+      clearVideoSelection();
       button.disabled = true;
       try {
         requireAdminUi();
@@ -1133,8 +1183,10 @@ function svgIcon(name, className = "") {
         const message = error?.message === "INVALID_IMAGE"
           ? "⚠️ اختر ملف صورة صحيحًا وحجمه أقل من 32 ميجابايت"
           : error?.message === "IMAGE_UPLOAD_FAILED"
-            ? "❌ تعذر رفع الصورة إلى ImgBB — تحقق من الاتصال ومفتاح الرفع"
-            : "⚠️ تأكد من إدخال اسم الكورس بشكل صحيح";
+            ? "❌ تعذر رفع الصورة — تحقق من الاتصال وإعدادات الرفع"
+            : error?.message === "AUTH_REQUIRED"
+              ? "❌ انتهت جلسة الدخول — سجّل الدخول بحساب الأدمن مجددًا"
+              : "⚠️ تأكد من إدخال اسم الكورس بشكل صحيح";
         showMsg("panelMsg", message, false);
         button.disabled = false;
         return;
@@ -1161,6 +1213,9 @@ function svgIcon(name, className = "") {
       }
     });
     $("cancelCourseBtn").addEventListener("click", resetCourseForm);
+    $("courseFormPanel").addEventListener("focusin", () => {
+      if (selectedCourseId && !videoSaveInProgress) clearVideoSelection();
+    });
 
     function resetCourseForm() {
       editingCourseId = null;
@@ -1179,18 +1234,19 @@ function svgIcon(name, className = "") {
 
     async function deleteCourse(id) {
       requireAdminUi();
+      if (videoSaveInProgress) {
+        showMsg("panelMsg", "⚠️ انتظر انتهاء حفظ الدرس قبل حذف الكورس", false);
+        return;
+      }
       if (!isSafeDocId(id)) { showMsg("panelMsg", "❌ معرف غير صالح", false); return; }
       if (!confirm("⚠️ حذف الكورس هيحذف كل دروسه كمان.. متأكد؟")) return;
+      clearVideoSelection();
       try {
         const vids = await getDocs(collection(db, "courses", id, "videos"));
         for (const videoDoc of vids.docs) {
           await deleteDoc(doc(db, "courses", id, "videos", videoDoc.id));
         }
         await deleteDoc(doc(db, "courses", id));
-        if (selectedCourseId === id) {
-          selectedCourseId = null;
-          $("videosPanel").classList.add("hidden");
-        }
         showMsg("panelMsg", "🗑️ تم حذف الكورس ودروسه", true);
         loadCourses();
       } catch {
@@ -1201,30 +1257,51 @@ function svgIcon(name, className = "") {
     // ===== الفيديوهات =====
     function openVideos(courseId) {
       requireAdminUi();
-      if (!isSafeDocId(courseId)) { showMsg("panelMsg", "❌ معرف غير صالح", false); return; }
+      if (videoSaveInProgress) {
+        showMsg("panelMsg", "⚠️ انتظر انتهاء حفظ الدرس قبل تغيير الكورس", false);
+        return;
+      }
+      if (!isSafeDocId(courseId)) {
+        clearVideoSelection();
+        showMsg("panelMsg", "❌ معرف الكورس غير صالح", false);
+        return;
+      }
+      const course = coursesCache.find((item) => item.id === courseId);
+      if (!course) {
+        clearVideoSelection();
+        showMsg("panelMsg", "⚠️ الكورس غير موجود في القائمة — حدّثها واختره مجددًا", false);
+        return;
+      }
+
       selectedCourseId = courseId;
-      editingVideoId = null;
+      $("videosList").innerHTML = '<p style="color:var(--gray); font-size:13px;">⏳ جاري تحميل دروس هذا الكورس...</p>';
       resetVideoForm();
-      const c = coursesCache.find((x) => x.id === courseId);
-      $("videosTitle").innerHTML = `<i class="fas fa-video"></i> دروس: ${esc(c?.title || "")}`;
+      $("videosTitle").innerHTML = `<i class="fas fa-video"></i> دروس: ${esc(course.title || "")}`;
       const banner = $("videosCourseBanner");
       banner.style.display = "block";
-      banner.innerHTML = `⚠️ الدروس اللي هتحفظها دلوقتي هتتحفظ في كورس: <b>«${esc(c?.title || "")}»</b> — تأكد إن ده الكورس الصح قبل ما تحفظ`;
+      banner.textContent = `الكورس المحدد: «${course.title || "بدون اسم"}». راجع الاسم بجوار زر الحفظ قبل المتابعة.`;
+      $("videoTargetCourseName").textContent = course.title || "بدون اسم";
+      $("videoTargetCourse").hidden = false;
       $("videosPanel").classList.remove("hidden");
-      loadVideos();
+      $("saveVideoBtn").disabled = false;
+      loadVideos(courseId, videoContextVersion);
       $("videosPanel").scrollIntoView({ behavior: "smooth" });
       loadCourses();
     }
 
-
-    async function loadVideos() {
+    async function loadVideos(courseId = selectedCourseId, contextVersion = videoContextVersion) {
       requireAdminUi();
+      const targetCourseId = courseId;
+      const targetContextVersion = contextVersion;
       const list = $("videosList");
-      if (!selectedCourseId || !isSafeDocId(selectedCourseId)) return;
+      if (!targetCourseId || !isSafeDocId(targetCourseId)
+        || selectedCourseId !== targetCourseId
+        || videoContextVersion !== targetContextVersion) return;
       try {
         const snap = await getDocs(
-          query(collection(db, "courses", selectedCourseId, "videos"), orderBy("order"))
+          query(collection(db, "courses", targetCourseId, "videos"), orderBy("order"))
         );
+        if (selectedCourseId !== targetCourseId || videoContextVersion !== targetContextVersion) return;
         const vids = snap.docs.map((lessonDoc) => ({ id: lessonDoc.id, ...lessonDoc.data() }));
         if (!vids.length) {
           list.innerHTML = '<p style="color:var(--gray); font-size:13px;">📭 لا توجد دروس — أضف أول درس من النموذج فوق</p>';
@@ -1248,85 +1325,139 @@ function svgIcon(name, className = "") {
           )
           .join("");
 
-        list.querySelectorAll("[data-vedit]").forEach((b) =>
-          b.addEventListener("click", () => {
-            const v = vids.find((x) => x.id === b.dataset.vedit);
-            if (!v) return;
-            editingVideoId = v.id;
-            $("vTitle").value = v.title || "";
-            $("vInstructor").value = v.instructor || "";
-            $("vDuration").value = v.duration || "";
-            $("vOrder").value = v.order ?? 1;
-            $("vUrl").value = v.videoUrl || "";
-            $("vImage").value = v.imageUrl || "";
-            $("vImagePositionX").value = cleanPercent(v.imagePositionX);
-            $("vImagePositionY").value = cleanPercent(v.imagePositionY);
-            $("vImageZoom").value = cleanZoom(v.imageZoom);
+        list.querySelectorAll("[data-vedit]").forEach((button) =>
+          button.addEventListener("click", () => {
+            if (videoSaveInProgress || selectedCourseId !== targetCourseId
+              || videoContextVersion !== targetContextVersion) return;
+            const video = vids.find((item) => item.id === button.dataset.vedit);
+            if (!video) return;
+            editingVideoId = video.id;
+            $("vTitle").value = video.title || "";
+            $("vInstructor").value = video.instructor || "";
+            $("vDuration").value = video.duration || "";
+            $("vOrder").value = video.order ?? 1;
+            $("vUrl").value = video.videoUrl || "";
+            $("vImage").value = video.imageUrl || "";
+            $("vImagePositionX").value = cleanPercent(video.imagePositionX);
+            $("vImagePositionY").value = cleanPercent(video.imagePositionY);
+            $("vImageZoom").value = cleanZoom(video.imageZoom);
             $("cancelVideoBtn").classList.remove("hidden");
           })
         );
-        list.querySelectorAll("[data-vdel]").forEach((b) =>
-          b.addEventListener("click", () => deleteVideo(b.dataset.vdel))
+        list.querySelectorAll("[data-vdel]").forEach((button) =>
+          button.addEventListener("click", () => {
+            if (selectedCourseId !== targetCourseId
+              || videoContextVersion !== targetContextVersion) return;
+            const video = vids.find((item) => item.id === button.dataset.vdel);
+            if (video) deleteVideo(video.id, targetCourseId, targetContextVersion, video.title);
+          })
         );
       } catch {
+        if (selectedCourseId !== targetCourseId || videoContextVersion !== targetContextVersion) return;
         list.innerHTML = '<p style="color:#ff6464; font-size:13px;">⚠️ خطأ في تحميل الدروس</p>';
       }
     }
 
-    async function updateVideoCount() {
+    async function updateVideoCount(courseId = selectedCourseId) {
       requireAdminUi();
-      if (!selectedCourseId || !isSafeDocId(selectedCourseId)) return;
-      const snap = await getDocs(collection(db, "courses", selectedCourseId, "videos"));
-      await updateDoc(doc(db, "courses", selectedCourseId), {
+      if (!courseId || !isSafeDocId(courseId)) return;
+      const snap = await getDocs(collection(db, "courses", courseId, "videos"));
+      await updateDoc(doc(db, "courses", courseId), {
         videoCount: snap.size
       });
     }
 
     $("saveVideoBtn").addEventListener("click", async () => {
-      let lessonRecord;
+      if (videoSaveInProgress) return;
       const button = $("saveVideoBtn");
-      button.disabled = true;
+      const targetCourseId = selectedCourseId;
+      const targetCourse = coursesCache.find((course) => course.id === targetCourseId);
+      const targetVideoId = editingVideoId;
+      const targetContextVersion = videoContextVersion;
+
+      if (!targetCourseId || !isSafeDocId(targetCourseId) || !targetCourse) {
+        clearVideoSelection();
+        showMsg("panelMsg", "⚠️ اختار كورسًا من القائمة قبل حفظ الدرس", false);
+        return;
+      }
+      if (targetVideoId && !isSafeDocId(targetVideoId)) {
+        showMsg("panelMsg", "❌ معرف الدرس غير صالح", false);
+        return;
+      }
       try {
         requireAdminUi();
-        const imageUrl = await resolveImageUrl("vImage", "vImageFile", $("vImage").value);
-        lessonRecord = validateVideoForm(imageUrl);
-      } catch (error) {
-        const message = error?.message === "INVALID_IMAGE"
-          ? "⚠️ اختر ملف صورة صحيحًا وحجمه أقل من 32 ميجابايت"
-          : error?.message === "IMAGE_UPLOAD_FAILED"
-            ? "❌ تعذر رفع الصورة إلى ImgBB — تحقق من الاتصال ومفتاح الرفع"
-            : "⚠️ العنوان ورابط فيديو HTTPS مطلوبان";
-        showMsg("panelMsg", message, false);
-        button.disabled = false;
+      } catch {
+        showMsg("panelMsg", "❌ الجلسة غير مخولة لحفظ الدروس", false);
         return;
       }
-      if (!selectedCourseId || !isSafeDocId(selectedCourseId)) {
-        showMsg("panelMsg", "⚠️ اختار كورس الأول", false);
+
+      const lessonTitle = cleanText($("vTitle").value, MAX_TEXT.title);
+      if (!lessonTitle || !cleanVideoUrl($("vUrl").value)) {
+        showMsg("panelMsg", "⚠️ العنوان ورابط فيديو HTTPS مطلوبان", false);
         return;
       }
+      const courseTitle = cleanText(targetCourse.title, MAX_TEXT.title) || "الكورس المحدد";
+      const action = targetVideoId ? "تعديل" : "إضافة";
+      if (!confirm(`سيتم ${action} الدرس «${lessonTitle}» داخل كورس «${courseTitle}».
+هل تريد المتابعة؟`)) return;
+
+      videoSaveInProgress = true;
+      button.disabled = true;
       try {
-        const lessonsCollectionRef = collection(db, "courses", selectedCourseId, "videos");
-        if (editingVideoId) {
-          if (!isSafeDocId(editingVideoId)) throw new Error("BAD_ID");
-          await updateDoc(doc(db, "courses", selectedCourseId, "videos", editingVideoId), lessonRecord);
-          showMsg("panelMsg", "✅ تم تعديل الدرس بنجاح", true);
+        const imageUrl = await resolveImageUrl(
+          "vImage",
+          "vImageFile",
+          $("vImage").value,
+          () => videoContextVersion === targetContextVersion
+            && selectedCourseId === targetCourseId
+            && editingVideoId === targetVideoId
+        );
+        const lessonRecord = validateVideoForm(imageUrl);
+        if (videoContextVersion !== targetContextVersion
+          || selectedCourseId !== targetCourseId
+          || editingVideoId !== targetVideoId) {
+          throw new Error("VIDEO_CONTEXT_CHANGED");
+        }
+
+        const lessonsCollectionRef = collection(db, "courses", targetCourseId, "videos");
+        if (targetVideoId) {
+          if (!isSafeDocId(targetVideoId)) throw new Error("BAD_ID");
+          await updateDoc(doc(db, "courses", targetCourseId, "videos", targetVideoId), lessonRecord);
+          showMsg("panelMsg", `✅ تم تعديل الدرس في كورس «${courseTitle}»`, true);
         } else {
           await addDoc(lessonsCollectionRef, lessonRecord);
-          showMsg("panelMsg", "✅ تم رفع الدرس بنجاح", true);
+          showMsg("panelMsg", `✅ تم حفظ الدرس في كورس «${courseTitle}»`, true);
         }
-        await updateVideoCount();
-        resetVideoForm();
-        loadVideos();
-        loadCourses();
-      } catch {
-        showMsg("panelMsg", "❌ خطأ في الحفظ", false);
+        await updateVideoCount(targetCourseId);
+        if (selectedCourseId === targetCourseId) {
+          resetVideoForm();
+          await loadVideos(targetCourseId, videoContextVersion);
+        }
+        await loadCourses();
+      } catch (error) {
+        const message = error?.message === "VIDEO_CONTEXT_CHANGED"
+          ? "⚠️ تغيّر الكورس المحدد؛ لم يُحفظ الدرس. اختار الكورس المقصود وحاول مجددًا."
+          : error?.message === "INVALID_IMAGE"
+            ? "⚠️ اختر ملف صورة صحيحًا وحجمه أقل من 32 ميجابايت"
+            : error?.message === "IMAGE_UPLOAD_FAILED"
+              ? "❌ تعذر رفع الصورة — تحقق من الاتصال وإعدادات الرفع"
+              : error?.message === "AUTH_REQUIRED"
+                ? "❌ انتهت جلسة الدخول — سجّل الدخول بحساب الأدمن مجددًا"
+                : "❌ تعذر حفظ الدرس — راجع الاتصال وصلاحيات Firestore";
+        showMsg("panelMsg", message, false);
       } finally {
-        button.disabled = false;
+        videoSaveInProgress = false;
+        button.disabled = !selectedCourseId || !isSafeDocId(selectedCourseId);
       }
     });
-    $("cancelVideoBtn").addEventListener("click", resetVideoForm);
+    $("cancelVideoBtn").addEventListener("click", () => {
+      if (videoSaveInProgress) return;
+      resetVideoForm();
+      if (selectedCourseId) loadVideos(selectedCourseId, videoContextVersion);
+    });
 
     function resetVideoForm() {
+      videoContextVersion += 1;
       editingVideoId = null;
       $("vTitle").value = "";
       $("vInstructor").value = "";
@@ -1341,16 +1472,49 @@ function svgIcon(name, className = "") {
       $("cancelVideoBtn").classList.add("hidden");
     }
 
-    async function deleteVideo(id) {
+    function clearVideoSelection() {
+      if (videoSaveInProgress) return false;
+      selectedCourseId = null;
+      editingVideoId = null;
+      $("videosPanel").classList.add("hidden");
+      $("videosCourseBanner").style.display = "none";
+      $("videosCourseBanner").textContent = "";
+      $("videoTargetCourse").hidden = true;
+      $("videoTargetCourseName").textContent = "";
+      $("videosTitle").innerHTML = '<i class="fas fa-video"></i> الدروس';
+      $("videosList").innerHTML = '<p style="color:var(--gray); font-size:13px;">اختر كورسًا من القائمة لعرض دروسه</p>';
+      resetVideoForm();
+      $("saveVideoBtn").disabled = true;
+      return true;
+    }
+
+    async function deleteVideo(id, courseId = selectedCourseId, contextVersion = videoContextVersion, title = "") {
       requireAdminUi();
-      if (!isSafeDocId(id) || !isSafeDocId(selectedCourseId)) { showMsg("panelMsg", "❌ معرف غير صالح", false); return; }
-      if (!confirm("حذف الدرس ده؟")) return;
+      const targetCourseId = courseId;
+      const targetContextVersion = contextVersion;
+      if (videoSaveInProgress) {
+        showMsg("panelMsg", "⚠️ انتظر انتهاء حفظ الدرس قبل حذفه", false);
+        return;
+      }
+      if (!isSafeDocId(id) || !isSafeDocId(targetCourseId)
+        || selectedCourseId !== targetCourseId
+        || videoContextVersion !== targetContextVersion) {
+        showMsg("panelMsg", "❌ اختيار الكورس أو الدرس غير صالح؛ حدّث القائمة وحاول مجددًا", false);
+        return;
+      }
+      const course = coursesCache.find((item) => item.id === targetCourseId);
+      const safeTitle = cleanText(title, MAX_TEXT.title) || "هذا الدرس";
+      const courseTitle = cleanText(course?.title, MAX_TEXT.title) || "الكورس المحدد";
+      if (!confirm(`حذف «${safeTitle}» من كورس «${courseTitle}»؟`)) return;
       try {
-        await deleteDoc(doc(db, "courses", selectedCourseId, "videos", id));
-        await updateVideoCount();
-        showMsg("panelMsg", "🗑️ تم حذف الدرس", true);
-        loadVideos();
-        loadCourses();
+        await deleteDoc(doc(db, "courses", targetCourseId, "videos", id));
+        await updateVideoCount(targetCourseId);
+        showMsg("panelMsg", `🗑️ تم حذف الدرس من كورس «${courseTitle}»`, true);
+        if (selectedCourseId === targetCourseId
+          && videoContextVersion === targetContextVersion) {
+          await loadVideos(targetCourseId, targetContextVersion);
+        }
+        await loadCourses();
       } catch {
         showMsg("panelMsg", "❌ خطأ في الحذف", false);
       }

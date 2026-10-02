@@ -338,6 +338,17 @@ ul {
   max-width: 500px;
   margin: 0 auto;
 }
+
+.features-logo {
+  display: block;
+  width: clamp(60px, 8vw, 84px);
+  aspect-ratio: 1;
+  object-fit: cover;
+  margin: 8px auto 14px;
+  border: 1px solid rgba(255, 215, 0, 0.22);
+  border-radius: 50%;
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.12);
+}
  
 /* ===== كروت الكورسات المقفولة ===== */
 .course-cards {

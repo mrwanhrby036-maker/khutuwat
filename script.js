@@ -1385,11 +1385,26 @@ onAuthStateChanged(auth, (u) => {
 });
 
 let selectedReviewRating = 0;
-document.querySelectorAll("#starRating button").forEach((button) => {
+const reviewStarButtons = Array.from(document.querySelectorAll("#starRating button"));
+reviewStarButtons.forEach((button) => {
   button.addEventListener("click", () => {
-    selectedReviewRating = Number(button.dataset.rating) || 0;
-    document.querySelectorAll("#starRating button").forEach((star) => {
+    const rating = Number(button.dataset.rating);
+    if (!Number.isInteger(rating) || rating < 1 || rating > 5) return;
+
+    selectedReviewRating = rating;
+    reviewStarButtons.forEach((star) => {
       star.classList.toggle("selected", Number(star.dataset.rating) <= selectedReviewRating);
+      star.classList.remove("is-animating");
+    });
+
+    // Force a reflow so repeated selections replay the animation.
+    if (reviewStarButtons.length) {
+      void reviewStarButtons[0].offsetWidth;
+    }
+    reviewStarButtons.forEach((star) => {
+      if (Number(star.dataset.rating) <= selectedReviewRating) {
+        star.classList.add("is-animating");
+      }
     });
   });
 });
@@ -1417,7 +1432,9 @@ document.getElementById("submitReviewBtn")?.addEventListener("click", async () =
     });
     document.getElementById("reviewComment").value = "";
     selectedReviewRating = 0;
-    document.querySelectorAll("#starRating button").forEach((star) => star.classList.remove("selected"));
+    reviewStarButtons.forEach((star) => {
+      star.classList.remove("selected", "is-animating");
+    });
     showToast("success", "✅ شكرًا لرأيك", "تم إرسال تقييمك وسيظهر بعد مراجعته");
   } catch {
     showToast("error", "⚠️ تعذر الإرسال", "حاول مرة أخرى بعد التأكد من الاتصال");

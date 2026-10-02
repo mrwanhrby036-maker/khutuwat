@@ -2238,13 +2238,13 @@ body.revealed .hero-image {
   top: 0;
   right: 0;
   left: auto;
-  height: 3px;
+  height: 10px;
   width: 0%;
   max-width: 100%;
   background: linear-gradient(90deg, var(--gold-dark), var(--gold), var(--gold-light));
   z-index: 10000;
   transition: width 0.12s ease-out;
-  box-shadow: 0 0 10px rgba(255, 215, 0, 0.55);
+  box-shadow: 0 0 14px rgba(255, 215, 0, 0.75);
   pointer-events: none;
 }
  
@@ -2453,6 +2453,7 @@ body.revealed .hero-image {
   background: transparent;
   color: rgba(255, 215, 0, 0.25);
   cursor: pointer;
+  transition: color 160ms ease;
 }
 
 .star-rating button::before,
@@ -2470,6 +2471,39 @@ body.revealed .hero-image {
 .star-rating button.selected,
 .star-rating button:focus-visible {
   color: var(--gold);
+}
+
+.star-rating button:nth-child(1) { --star-animation-delay: 0ms; }
+.star-rating button:nth-child(2) { --star-animation-delay: 50ms; }
+.star-rating button:nth-child(3) { --star-animation-delay: 100ms; }
+.star-rating button:nth-child(4) { --star-animation-delay: 150ms; }
+.star-rating button:nth-child(5) { --star-animation-delay: 200ms; }
+
+.star-rating button.is-animating::before {
+  animation: rating-star-pop 480ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation-delay: var(--star-animation-delay, 0ms);
+  transform-origin: center;
+}
+
+@keyframes rating-star-pop {
+  0% {
+    transform: scale(0.55) rotate(-14deg);
+    filter: drop-shadow(0 0 0 rgba(255, 215, 0, 0));
+  }
+  55% {
+    transform: scale(1.32) rotate(9deg);
+    filter: drop-shadow(0 0 7px rgba(255, 215, 0, 0.9));
+  }
+  78% { transform: scale(0.94) rotate(-3deg); }
+  100% {
+    transform: scale(1) rotate(0);
+    filter: drop-shadow(0 0 0 rgba(255, 215, 0, 0));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .star-rating button { transition: none; }
+  .star-rating button.is-animating::before { animation: none; }
 }
 
 .review-form-panel textarea {

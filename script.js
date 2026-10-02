@@ -1409,6 +1409,28 @@ reviewStarButtons.forEach((button) => {
   });
 });
 
+// ===== زر إرسال التقييم: أنيميشن الطائرة الورقية =====
+const REVIEW_FLIGHT_MIN_MS = 1100;  // أقل مدة نعرض فيها طيران الطائرة حتى لو رجعت قاعدة البيانات بسرعة
+const REVIEW_SENT_HOLD_MS = 1500;   // مدة إظهار "تم الإرسال" قبل رجوع الزر لشكله الطبيعي
+const REVIEW_ERROR_HOLD_MS = 900;
+
+const waitMs = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+function setReviewBtnState(button, state) {
+  if (!button) return;
+  button.classList.toggle("is-sending", state === "sending");
+  button.classList.toggle("is-sent", state === "sent");
+  button.classList.toggle("is-error", state === "error");
+  button.setAttribute("aria-busy", state === "sending" ? "true" : "false");
+  const labels = {
+    idle: "إرسال التقييم",
+    sending: "جارٍ إرسال التقييم…",
+    sent: "تم إرسال التقييم بنجاح",
+    error: "تعذّر إرسال التقييم، حاول مرة أخرى"
+  };
+  button.setAttribute("aria-label", labels[state] || labels.idle);
+}
+
 document.getElementById("submitReviewBtn")?.addEventListener("click", async () => {
   if (!currentUser) {
     showToast("error", "⚠️ تسجيل الدخول مطلوب", "سجّل الدخول أولًا لإرسال تقييمك");
@@ -1420,7 +1442,10 @@ document.getElementById("submitReviewBtn")?.addEventListener("click", async () =
     return;
   }
   const button = document.getElementById("submitReviewBtn");
+  const flightStartedAt = Date.now();
   button.disabled = true;
+  // ✈️ الطائرة تقلع بالكلمة داخل الزر من أول ضغطة، وتفضل طايرة لحد ما الرسالة توصل
+  setReviewBtnState(button, "sending");
   try {
     await addDoc(collection(db, "reviews"), {
       studentUid: currentUser.uid,
@@ -1430,16 +1455,23 @@ document.getElementById("submitReviewBtn")?.addEventListener("click", async () =
       status: "pending",
       createdAt: serverTimestamp()
     });
+    // وصلت قاعدة البيانات: نكمل مدة الطيران ثم نعلن الوصول
+    await waitMs(Math.max(0, REVIEW_FLIGHT_MIN_MS - (Date.now() - flightStartedAt)));
+    setReviewBtnState(button, "sent");
     document.getElementById("reviewComment").value = "";
     selectedReviewRating = 0;
     reviewStarButtons.forEach((star) => {
       star.classList.remove("selected", "is-animating");
     });
     showToast("success", "✅ شكرًا لرأيك", "تم إرسال تقييمك وسيظهر بعد مراجعته");
+    await waitMs(REVIEW_SENT_HOLD_MS);
   } catch {
+    setReviewBtnState(button, "error");
     showToast("error", "⚠️ تعذر الإرسال", "حاول مرة أخرى بعد التأكد من الاتصال");
+    await waitMs(REVIEW_ERROR_HOLD_MS);
   } finally {
-    button.disabled = false;
+    setReviewBtnState(button, "idle");
+    button.disabled = !currentUser;
   }
 });
  

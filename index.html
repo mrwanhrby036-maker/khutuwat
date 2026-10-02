@@ -204,7 +204,23 @@
             <button type="button" data-rating="5" aria-label="خمس نجوم"></button>
           </div>
           <textarea id="reviewComment" maxlength="1000" placeholder="اكتب ملاحظاتك عن المميزات والعيوب..."></textarea>
-          <button class="btn btn-gold" id="submitReviewBtn" type="button"><svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m4 4 16 8-16 8 3-8-3-8Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M7 12h13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg> إرسال التقييم</button>
+          <button class="btn btn-gold send-review-btn" id="submitReviewBtn" type="button" aria-busy="false" aria-label="إرسال التقييم">
+            <span class="send-review-face">
+              <svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m4 4 16 8-16 8 3-8-3-8Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M7 12h13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+              <span class="send-review-face-text"><span class="send-review-word">إرسال</span> <span class="send-review-word">التقييم</span></span>
+            </span>
+            <span class="send-review-flight" aria-hidden="true">
+              <span class="send-review-track">
+                <svg class="send-review-plane" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M21.6 3.1 2.4 12l19.2 8.9-3.3-8.9 3.3-8.9Z" fill="currentColor" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round"/><path d="M18.3 12H2.4" fill="none" stroke="rgba(0,0,0,0.32)" stroke-width="1.1" stroke-linecap="round"/></svg>
+                <span class="send-review-trail"></span>
+                <span class="send-review-flying-text"><span>إرسال</span> <span>التقييم</span></span>
+              </span>
+            </span>
+            <span class="send-review-done" aria-hidden="true">
+              <svg class="svg-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m4.6 12.4 4.8 4.8L19.4 6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <span>تم الإرسال</span>
+            </span>
+          </button>
         </div>
         <div class="reviews-list" id="reviewsList"><p class="reviews-empty">جاري تحميل التقييمات...</p></div>
       </div>

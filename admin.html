@@ -583,6 +583,7 @@
       orderBy,
       onSnapshot
     } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import "./lib/image-host.js";
 
     // ===== إعدادات Firebase (نفس المشروع) =====
     const firebaseConfig = {
@@ -616,9 +617,7 @@
     const YOUTUBE_ID_RE = /^[A-Za-z0-9_-]{11}$/;
     const DRIVE_ID_RE = /^[A-Za-z0-9_-]{10,120}$/;
     const GUMLET_ID_RE = /^[A-Za-z0-9_-]{8,160}$/;
-    // الصور والفيديوهات يمكن أن تكون من مصادر خارجية، لكن HTTPS فقط.
-    // إن أردت Allowlist صارمة لاحقًا يمكن تقييدها هنا وفي Firestore Rules.
-    const ALLOWED_IMAGE_HOSTS = new Set(["i.postimg.cc", "postimg.cc", "postimages.org", "i.ibb.co", "ibb.co"]);
+    // قائمة مصادر الصور موحدة مع صفحة الطلاب في lib/image-host.js؛ وروابط الفيديو HTTPS فقط.
     const MAX_IMAGE_BYTES = 32 * 1024 * 1024;
     let adminVerified = false;
 
@@ -664,9 +663,7 @@
       }
     }
     function cleanImageUrl(value) {
-      const raw = String(value ?? "").trim();
-      if (!raw) return "";
-      return safeUrl(raw, { hosts: ALLOWED_IMAGE_HOSTS });
+      return globalThis.KhutuwatImageHost.cleanImageUrl(value);
     }
     function cleanVideoUrl(value) {
       const raw = String(value ?? "").trim();
@@ -781,9 +778,11 @@
     }
     function validateCourseForm(imageUrl = "") {
       const title = cleanText($("cTitle").value, MAX_TEXT.title);
+      const safeImageUrl = cleanImageUrl(imageUrl);
       if (!title) throw new Error("TITLE_REQUIRED");
+      if (imageUrl && !safeImageUrl) throw new Error("INVALID_IMAGE_URL");
       return {
-        imageUrl: cleanImageUrl(imageUrl),
+        imageUrl: safeImageUrl,
         imagePositionX: cleanPercent($("cImagePositionX").value),
         imagePositionY: cleanPercent($("cImagePositionY").value),
         imageZoom: cleanZoom($("cImageZoom").value),
@@ -796,14 +795,16 @@
     function validateVideoForm(imageUrl = "") {
       const title = cleanText($("vTitle").value, MAX_TEXT.title);
       const videoUrl = cleanVideoUrl($("vUrl").value);
+      const safeImageUrl = cleanImageUrl(imageUrl);
       if (!title || !videoUrl) throw new Error("VIDEO_REQUIRED");
+      if (imageUrl && !safeImageUrl) throw new Error("INVALID_IMAGE_URL");
       return {
         title,
         instructor: cleanText($("vInstructor").value, MAX_TEXT.instructor),
         duration: cleanText($("vDuration").value, MAX_TEXT.duration),
         order: cleanOrder($("vOrder").value),
         videoUrl,
-        imageUrl: cleanImageUrl(imageUrl),
+        imageUrl: safeImageUrl,
         imagePositionX: cleanPercent($("vImagePositionX").value),
         imagePositionY: cleanPercent($("vImagePositionY").value),
         imageZoom: cleanZoom($("vImageZoom").value)

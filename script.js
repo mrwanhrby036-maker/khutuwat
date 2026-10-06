@@ -20,6 +20,7 @@ import {
   limit,
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import "./lib/image-host.js";
  
 // ===== إعدادات Firebase =====
 const firebaseConfig = {
@@ -49,8 +50,7 @@ const YOUTUBE_ID_RE = /^[A-Za-z0-9_-]{11}$/;
 const DRIVE_ID_RE = /^[A-Za-z0-9_-]{10,120}$/;
 const GUMLET_ID_RE = /^[A-Za-z0-9_-]{8,160}$/;
 const DOC_ID_RE = /^[A-Za-z0-9_-]{1,160}$/;
-// دعم صور Postimages وصور ImgBB القديمة.
-const ALLOWED_IMAGE_HOSTS = new Set(["i.ibb.co", "ibb.co", "i.postimg.cc"]);
+// سياسة صور موحدة مع لوحة الأدمن (Postimages وصور ImgBB القديمة).
  
 function limitText(value, max = 200) {
   return String(value ?? "").replace(/[\u0000-\u001F\u007F]/g, "").trim().slice(0, max);
@@ -102,7 +102,7 @@ function safeUrl(value, { hosts = null, allowPath = () => true } = {}) {
 }
  
 function safeImageUrl(value) {
-  return safeUrl(value, { hosts: ALLOWED_IMAGE_HOSTS });
+  return globalThis.KhutuwatImageHost.cleanImageUrl(value);
 }
  
 function sanitizeCourse(raw, id = "") {

@@ -1,1 +1,6 @@
-IMGBB_API_KEY=ضع_مفتاح_ImgBB_هنا
+# Set these in Vercel Environment Variables, then redeploy. This file is not loaded automatically.
+FIREBASE_PROJECT_ID=chatapp-e8283
+ALLOWED_ORIGINS=https://khutuwat.vercel.app
+POSTIMAGES_API_KEY=your_postimages_api_key
+# Optional gallery identifier from your Postimages account
+POSTIMAGES_GALLERY=

@@ -1,6 +1,7 @@
 "use strict";
 
 const crypto = require("node:crypto");
+const { resolveImageLink, uploadToPostimages } = require("../lib/image-host");
 
 // ---------------------------------------------------------------------------
 // Configuration
@@ -21,8 +22,7 @@ const DEFAULT_CERT_CACHE_MS = 60 * 60 * 1000;
 
 const GOOGLE_CERTS_URL =
   "https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com";
-const IMGBB_UPLOAD_URL = "https://api.imgbb.com/1/upload";
-const TRUSTED_IMAGE_HOSTS = new Set(["i.ibb.co", "ibb.co"]);
+
 
 const BASE64_PATTERN = /^[A-Za-z0-9+/]+={0,2}$/;
 const BEARER_TOKEN_PATTERN = /^Bearer ([A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)$/;
@@ -51,18 +51,17 @@ const isPlainObject = (value) => value !== null && typeof value === "object" && 
 
 function readConfig() {
   const projectId = (process.env.FIREBASE_PROJECT_ID || "").trim();
-  const imgbbApiKey = (process.env.IMGBB_API_KEY || "").trim();
+  const postimagesApiKey = (process.env.POSTIMAGES_API_KEY || "").trim();
   const allowedOrigins = parseAllowedOrigins(process.env.ALLOWED_ORIGINS);
 
   const missing = [];
   if (!projectId) missing.push("FIREBASE_PROJECT_ID");
-  if (!imgbbApiKey) missing.push("IMGBB_API_KEY");
   if (allowedOrigins.size === 0) missing.push("ALLOWED_ORIGINS");
   if (missing.length > 0) {
     console.error("upload-image: missing or invalid configuration:", missing.join(", "));
     throw new HttpError(500, "SERVER_MISCONFIGURED");
   }
-  return { projectId, imgbbApiKey, allowedOrigins };
+  return { projectId, postimagesApiKey, allowedOrigins };
 }
 
 function parseAllowedOrigins(rawValue) {
@@ -267,43 +266,6 @@ function parseImagePayload(requestBody) {
   return { base64Image, byteLength: imageBytes.length };
 }
 
-function toTrustedImageUrl(rawUrl) {
-  let parsedUrl;
-  try {
-    parsedUrl = new URL(rawUrl);
-  } catch {
-    throw new HttpError(502, "IMAGE_UPLOAD_FAILED");
-  }
-  const isTrusted = parsedUrl.protocol === "https:" && TRUSTED_IMAGE_HOSTS.has(parsedUrl.hostname);
-  if (!isTrusted) {
-    console.error("upload-image: ImgBB returned an unexpected image host");
-    throw new HttpError(502, "IMAGE_UPLOAD_FAILED");
-  }
-  return parsedUrl.toString();
-}
-
-async function uploadToImgBB({ apiKey, base64Image }) {
-  let imgbbResponse;
-  try {
-    imgbbResponse = await fetch(IMGBB_UPLOAD_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({ key: apiKey, image: base64Image }),
-      signal: AbortSignal.timeout(EXTERNAL_REQUEST_TIMEOUT_MS)
-    });
-  } catch (error) {
-    console.error("upload-image: ImgBB request failed:", error.name);
-    throw new HttpError(502, "IMAGE_UPLOAD_FAILED");
-  }
-
-  const result = await imgbbResponse.json().catch(() => null);
-  if (!imgbbResponse.ok || !result?.success || typeof result?.data?.url !== "string") {
-    console.error("upload-image: ImgBB rejected the upload, status", imgbbResponse.status);
-    throw new HttpError(502, "IMAGE_UPLOAD_FAILED");
-  }
-  return toTrustedImageUrl(result.data.url);
-}
-
 // ---------------------------------------------------------------------------
 // Request handler
 // ---------------------------------------------------------------------------
@@ -339,10 +301,20 @@ module.exports = async function handler(request, response) {
     if (!/^application\/json\b/i.test(request.headers["content-type"] || "")) {
       throw new HttpError(415, "UNSUPPORTED_MEDIA_TYPE");
     }
-    const { base64Image, byteLength } = parseImagePayload(request.body);
-    const imageUrl = await uploadToImgBB({ apiKey: config.imgbbApiKey, base64Image });
-
-    console.info("upload-image: image uploaded by admin", uid, `${byteLength} bytes`);
+    let imageUrl;
+    try {
+      if (request.body?.action === "resolve-url") {
+        if (typeof request.body.url !== "string" || request.body.url.length > 2048) throw new HttpError(400, "INVALID_IMAGE_URL");
+        imageUrl = await resolveImageLink(request.body.url);
+      } else {
+        const { base64Image } = parseImagePayload(request.body);
+        imageUrl = await uploadToPostimages({ apiKey: config.postimagesApiKey, gallery: process.env.POSTIMAGES_GALLERY, base64Image, type: request.body.type });
+      }
+    } catch (error) {
+      if (error instanceof HttpError) throw error;
+      const code = ["POSTIMAGES_NOT_CONFIGURED", "INVALID_IMAGE_URL", "IMAGE_LINK_FAILED"].includes(error.message) ? error.message : "IMAGE_UPLOAD_FAILED";
+      throw new HttpError(code === "INVALID_IMAGE_URL" ? 400 : 502, code);
+    }
     return response.status(200).json({ success: true, data: { url: imageUrl } });
   } catch (error) {
     return sendError(response, error);

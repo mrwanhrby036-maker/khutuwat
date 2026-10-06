@@ -451,10 +451,10 @@
             <input type="text" id="cTitle">
           </label>
         </div>
-        <label>صورة الكورس — اختياري
+        <label>صورة الكورس — اختياري (اختر ملفًا أو الصق رابطًا بديلًا)
           <div class="image-url-row">
             <input type="file" id="cImageFile" accept="image/*">
-            <input type="hidden" id="cImage">
+            <input type="url" id="cImage" dir="ltr" placeholder="رابط بديل من Postimages أو ImgBB" aria-label="رابط الصورة البديل">
             <button type="button" class="btn btn-outline image-edit-btn" data-image-editor="course">تعديل الصورة</button>
           </div>
           <input type="hidden" id="cImagePositionX" value="50">
@@ -501,10 +501,10 @@
             <input type="number" id="vOrder" value="1">
           </label>
         </div>
-        <label>صورة الدرس — اختياري
+        <label>صورة الدرس — اختياري (اختر ملفًا أو الصق رابطًا بديلًا)
           <div class="image-url-row">
             <input type="file" id="vImageFile" accept="image/*">
-            <input type="hidden" id="vImage">
+            <input type="url" id="vImage" dir="ltr" placeholder="رابط بديل من Postimages أو ImgBB" aria-label="رابط الصورة البديل">
             <button type="button" class="btn btn-outline image-edit-btn" data-image-editor="video">تعديل الصورة</button>
           </div>
           <input type="hidden" id="vImagePositionX" value="50">
@@ -618,7 +618,7 @@
     const GUMLET_ID_RE = /^[A-Za-z0-9_-]{8,160}$/;
     // الصور والفيديوهات يمكن أن تكون من مصادر خارجية، لكن HTTPS فقط.
     // إن أردت Allowlist صارمة لاحقًا يمكن تقييدها هنا وفي Firestore Rules.
-    const ALLOWED_IMAGE_HOSTS = null;
+    const ALLOWED_IMAGE_HOSTS = new Set(["i.postimg.cc", "postimg.cc", "postimages.org", "i.ibb.co", "ibb.co"]);
     const MAX_IMAGE_BYTES = 32 * 1024 * 1024;
     let adminVerified = false;
 
@@ -701,8 +701,11 @@
       INVALID_IMAGE: "⚠️ اختر ملف صورة صحيحًا وحجمه أقل من 32 ميجابايت",
       IMAGE_TOO_LARGE: "⚠️ الصورة كبيرة جدًا — جرّب صورة أصغر",
       IMAGE_COMPRESS_FAILED: "❌ تعذر تجهيز الصورة للرفع — جرّب صورة أخرى",
-      IMAGE_UPLOAD_FAILED: "❌ ImgBB رفض الصورة — راجع المفتاح في Vercel",
-      SERVER_MISCONFIGURED: "❌ إعدادات السيرفر ناقصة في Vercel (FIREBASE_PROJECT_ID / ALLOWED_ORIGINS / IMGBB_API_KEY)",
+      IMAGE_UPLOAD_FAILED: "❌ تعذر الرفع على Postimages — جرّب مجددًا أو ألغِ اختيار الملف والصق رابط الصورة البديل",
+      POSTIMAGES_NOT_CONFIGURED: "❌ أضف POSTIMAGES_API_KEY في Vercel، أو ألغِ اختيار الملف واستخدم رابط الصورة",
+      INVALID_IMAGE_URL: "❌ استخدم رابط صورة من Postimages أو ImgBB",
+      IMAGE_LINK_FAILED: "❌ تعذر استخراج الصورة — انسخ Direct link من موقع الصور",
+      SERVER_MISCONFIGURED: "❌ إعدادات السيرفر ناقصة في Vercel (FIREBASE_PROJECT_ID / ALLOWED_ORIGINS)",
       ORIGIN_NOT_ALLOWED: "❌ الدومين ده مش موجود في ALLOWED_ORIGINS",
       AUTH_REQUIRED: "❌ انتهت جلسة الدخول — سجّل الدخول بحساب الأدمن مجددًا",
       INVALID_TOKEN: "❌ انتهت جلسة الدخول — سجّل الدخول بحساب الأدمن مجددًا",
@@ -720,7 +723,7 @@
       console.error(fallbackPrefix, error);
       return `❌ ${fallbackPrefix} — (${code || "UNKNOWN"})`;
     }
-    async function uploadImageToImgBB(originalFile) {
+    async function uploadImageToPostimages(originalFile) {
       if (!(originalFile instanceof File) || !originalFile.type.startsWith("image/") || originalFile.size > MAX_IMAGE_BYTES) {
         throw new Error("INVALID_IMAGE");
       }
@@ -749,8 +752,29 @@
     }
     async function resolveImageUrl(inputId, fileId, existingUrl = "", shouldApply = () => true) {
       const file = $(fileId).files?.[0];
-      if (!file) return cleanImageUrl(existingUrl || $(inputId).value);
-      const url = await uploadImageToImgBB(file);
+      if (!file) {
+        const raw = String($(inputId).value || existingUrl).trim();
+        if (!raw) return "";
+        let parsed;
+        try { parsed = new URL(raw); } catch { throw new Error("INVALID_IMAGE_URL"); }
+        if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.port) throw new Error("INVALID_IMAGE_URL");
+        if (["i.postimg.cc", "i.ibb.co"].includes(parsed.hostname)) return parsed.href;
+        if (!["postimg.cc", "postimages.org", "www.postimages.org", "ibb.co"].includes(parsed.hostname)) throw new Error("INVALID_IMAGE_URL");
+        const user = auth.currentUser;
+        if (!user) throw new Error("AUTH_REQUIRED");
+        const response = await fetch("/api/upload-image", {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${await user.getIdToken()}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "resolve-url", url: raw })
+        });
+        const result = await response.json().catch(() => null);
+        if (!response.ok || !result?.data?.url) throw new Error(result?.error || "IMAGE_LINK_FAILED");
+        const resolved = cleanImageUrl(result.data.url);
+        if (!resolved) throw new Error("IMAGE_LINK_FAILED");
+        if (shouldApply()) $(inputId).value = resolved;
+        return resolved;
+      }
+      const url = await uploadImageToPostimages(file);
       if (!url) throw new Error("IMAGE_UPLOAD_FAILED");
       if (shouldApply()) $(inputId).value = url;
       return url;
@@ -787,6 +811,9 @@
     }
 
     const $ = (id) => document.getElementById(id);
+    for (const prefix of ["c", "v"]) {
+      $(prefix + "Image").addEventListener("input", () => { $(prefix + "ImageFile").value = ""; });
+    }
     let editingCourseId = null;
     let editingVideoId = null;
     let selectedCourseId = null;

@@ -665,6 +665,37 @@
     function cleanImageUrl(value) {
       return globalThis.KhutuwatImageHost.cleanImageUrl(value);
     }
+    // الصورة بتتمر عبر /api/image الأول (نفس الدومين) عشان حجب موقع الصور أو حماية
+    // الهوت-لينك ما تكسرش المعاينة، ولو فشل بنرجع للرابط المباشر ثم لأيقونة.
+    function thumbImageHtml(record, kind) {
+      const imageUrl = cleanImageUrl(record?.imageUrl);
+      if (!imageUrl) return `<span class="thumb-empty">${svgIcon(kind)}</span>`;
+      const proxyUrl = globalThis.KhutuwatImageHost.buildImageProxyUrl(imageUrl);
+      const directUrl = globalThis.KhutuwatImageHost.isDirectImageUrl(imageUrl) ? imageUrl : "";
+      const src = proxyUrl || directUrl;
+      if (!src) return `<span class="thumb-empty">${svgIcon(kind)}</span>`;
+      const fallbackAttr = directUrl && directUrl !== src ? ` data-fallback-src="${esc(directUrl)}"` : "";
+      return `<img class="thumb" src="${esc(src)}"${fallbackAttr} data-thumb-placeholder="${kind}" alt="" style="${esc(imageStyleAttr(record))}" referrerpolicy="no-referrer">`;
+    }
+    function thumbEmptyHtml(kind) {
+      return `<span class="thumb-empty">${svgIcon(kind)}</span>`;
+    }
+    // load/error مش بيعملوا bubble على <img>، فبنسمعهم في capture phase على مستوى الصفحة
+    document.addEventListener(
+      "error",
+      (e) => {
+        const img = e.target;
+        if (img?.tagName !== "IMG" || !img.dataset?.thumbPlaceholder) return;
+        const fallbackSrc = img.dataset.fallbackSrc;
+        if (fallbackSrc) {
+          delete img.dataset.fallbackSrc;
+          img.src = fallbackSrc;
+          return;
+        }
+        img.outerHTML = thumbEmptyHtml(img.dataset.thumbPlaceholder === "play" ? "play" : "book");
+      },
+      true
+    );
     function cleanVideoUrl(value) {
       const raw = String(value ?? "").trim();
       if (!raw) return "";
@@ -1185,7 +1216,7 @@ function svgIcon(name, className = "") {
           .map(
             (c) => `
           <div class="item ${c.id === selectedCourseId ? "sel" : ""}">
-            ${cleanImageUrl(c.imageUrl) ? `<img class="thumb" src="${esc(cleanImageUrl(c.imageUrl))}" alt="" style="${esc(imageStyleAttr(c))}" referrerpolicy="no-referrer">` : `<span class="thumb-empty">${svgIcon("book")}</span>`}
+            ${thumbImageHtml(c, "book")}
             <div class="info">
               <strong>${esc(c.title)}</strong>
               <small>ترتيب: ${c.order ?? 1} • فيديوهات: ${c.videoCount ?? 0}</small>
@@ -1378,7 +1409,7 @@ function svgIcon(name, className = "") {
           .map(
             (v, i) => `
           <div class="item">
-            ${cleanImageUrl(v.imageUrl) ? `<img class="thumb" src="${esc(cleanImageUrl(v.imageUrl))}" alt="" style="${esc(imageStyleAttr(v))}" referrerpolicy="no-referrer">` : `<span class="thumb-empty">${svgIcon("play")}</span>`}
+            ${thumbImageHtml(v, "play")}
             <div class="info">
               <strong>${i + 1}. ${esc(v.title)}</strong>
               <small>${svgIcon("user")} ${esc(v.instructor || "—")} • ${svgIcon("clock")} ${esc(v.duration || "—")}</small>

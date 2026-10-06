@@ -200,7 +200,7 @@ document.addEventListener(
 );
 
 // ===== سلسلة بدائل صورة الدرس/الكورس =====
-// 1) رابط السيرفر بتاعنا (/api/image)  2) الرابط المباشر من موقع الصور  3) أيقونة بدل صورة مكسورة
+// 1) الرابط المباشر من موقع الصور (الأسرع)  2) وسيط السيرفر /api/image  3) أيقونة بدل صورة مكسورة
 function showThumbPlaceholder(img) {
   const wrap = img.closest("[data-thumb-placeholder]");
   if (!wrap) {
@@ -228,9 +228,10 @@ document.addEventListener(
     wrap.classList.remove("thumb-loading");
     const fallbackSrc = img.dataset.fallbackSrc;
     if (fallbackSrc) {
-      // جرّب الرابط المباشر قبل ما نستسلم — لو هو كمان فشل هنعرض أيقونة
+      // جرّب وسيط السيرفر قبل ما نستسلم — لو هو كمان فشل هنعرض أيقونة
       delete img.dataset.fallbackSrc;
       img.src = fallbackSrc;
+      wrap.classList.add("thumb-loading");
       return;
     }
     showThumbPlaceholder(img);
@@ -527,17 +528,17 @@ function escapeHtml(t) {
 // ===== أيقونة/صورة الكورس: بتعرض imageUrl لو موجودة، وإلا إيموجي افتراضي =====
 // (الكورسات القديمة كانت بتتخزن بحقل icon، دلوقتي بتتخزن بحقل imageUrl)
 // أثناء تحميل الصورة بتتعرض شيمر سكيلتون وبتختفي أول ما الصورة توصل (onload)
-// الصورة بتمر عبر /api/image الأول (نفس الدومين) عشان حجب موقع الصور أو حماية الهوت-لينك
-// ما تكسرش الصفحة، ولو السيرفر فشل بنرجع للرابط المباشر، ولو الاتنين فشلوا بنعرض أيقونة.
+// بنجرّب الرابط المباشر الأول، ولو اتحجب (شبكة الزائر أو مانع إعلانات) أو الموقع رجّع
+// صفحة HTML مكان الصورة، بنرجع لوسيط السيرفر /api/image، ولو فشل برضه بنعرض أيقونة.
 function thumbImageSources(record) {
   const imageUrl = safeImageUrl(record?.imageUrl);
   if (!imageUrl) return null;
-  const proxyUrl = buildImageProxyUrl(imageUrl);
   // روابط صفحات الصور (postimg.cc/xxx) مش صور مباشرة، فمينفعش تتحط في <img src> أصلاً
   const directUrl = isDirectImageUrl(imageUrl) ? imageUrl : "";
-  const src = proxyUrl || directUrl;
+  const proxyUrl = buildImageProxyUrl(imageUrl);
+  const src = directUrl || proxyUrl;
   if (!src) return null;
-  return { src, fallback: directUrl && directUrl !== src ? directUrl : "" };
+  return { src, fallback: proxyUrl && proxyUrl !== src ? proxyUrl : "" };
 }
 
 function thumbImageHtml(record, className) {

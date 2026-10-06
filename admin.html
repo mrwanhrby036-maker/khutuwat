@@ -665,16 +665,16 @@
     function cleanImageUrl(value) {
       return globalThis.KhutuwatImageHost.cleanImageUrl(value);
     }
-    // الصورة بتتمر عبر /api/image الأول (نفس الدومين) عشان حجب موقع الصور أو حماية
-    // الهوت-لينك ما تكسرش المعاينة، ولو فشل بنرجع للرابط المباشر ثم لأيقونة.
+    // بنجرّب الرابط المباشر الأول، ولو اتحجب بنرجع لوسيط السيرفر /api/image،
+    // ولو فشل برضه بنعرض أيقونة بدل علامة الصورة المكسورة.
     function thumbImageHtml(record, kind) {
       const imageUrl = cleanImageUrl(record?.imageUrl);
       if (!imageUrl) return `<span class="thumb-empty">${svgIcon(kind)}</span>`;
-      const proxyUrl = globalThis.KhutuwatImageHost.buildImageProxyUrl(imageUrl);
       const directUrl = globalThis.KhutuwatImageHost.isDirectImageUrl(imageUrl) ? imageUrl : "";
-      const src = proxyUrl || directUrl;
+      const proxyUrl = globalThis.KhutuwatImageHost.buildImageProxyUrl(imageUrl);
+      const src = directUrl || proxyUrl;
       if (!src) return `<span class="thumb-empty">${svgIcon(kind)}</span>`;
-      const fallbackAttr = directUrl && directUrl !== src ? ` data-fallback-src="${esc(directUrl)}"` : "";
+      const fallbackAttr = proxyUrl && proxyUrl !== src ? ` data-fallback-src="${esc(proxyUrl)}"` : "";
       return `<img class="thumb" src="${esc(src)}"${fallbackAttr} data-thumb-placeholder="${kind}" alt="" style="${esc(imageStyleAttr(record))}" referrerpolicy="no-referrer">`;
     }
     function thumbEmptyHtml(kind) {

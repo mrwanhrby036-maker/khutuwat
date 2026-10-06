@@ -676,10 +676,55 @@
     function requireAdminUi() {
       if (!adminVerified) throw new Error("NOT_ADMIN");
     }
-    async function uploadImageToImgBB(file) {
-      if (!(file instanceof File) || !file.type.startsWith("image/") || file.size > MAX_IMAGE_BYTES) {
+    const SERVER_SAFE_IMAGE_BYTES = 2.5 * 1024 * 1024;
+    const MAX_IMAGE_DIMENSION = 2000;
+    async function compressImageForUpload(file) {
+      if (file.size <= SERVER_SAFE_IMAGE_BYTES) return file;
+      if (file.type === "image/gif") throw new Error("IMAGE_TOO_LARGE");
+      const bitmap = await createImageBitmap(file);
+      const scale = Math.min(1, MAX_IMAGE_DIMENSION / Math.max(bitmap.width, bitmap.height));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.round(bitmap.width * scale);
+      canvas.height = Math.round(bitmap.height * scale);
+      const context = canvas.getContext("2d");
+      context.fillStyle = "#ffffff";
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      bitmap.close?.();
+      const blob = await new Promise((resolve, reject) => {
+        canvas.toBlob((result) => (result ? resolve(result) : reject(new Error("IMAGE_COMPRESS_FAILED"))), "image/jpeg", 0.85);
+      });
+      if (blob.size > SERVER_SAFE_IMAGE_BYTES) throw new Error("IMAGE_TOO_LARGE");
+      return new File([blob], "upload.jpg", { type: "image/jpeg" });
+    }
+    const ERROR_MESSAGES = {
+      INVALID_IMAGE: "⚠️ اختر ملف صورة صحيحًا وحجمه أقل من 32 ميجابايت",
+      IMAGE_TOO_LARGE: "⚠️ الصورة كبيرة جدًا — جرّب صورة أصغر",
+      IMAGE_COMPRESS_FAILED: "❌ تعذر تجهيز الصورة للرفع — جرّب صورة أخرى",
+      IMAGE_UPLOAD_FAILED: "❌ ImgBB رفض الصورة — راجع المفتاح في Vercel",
+      SERVER_MISCONFIGURED: "❌ إعدادات السيرفر ناقصة في Vercel (FIREBASE_PROJECT_ID / ALLOWED_ORIGINS / IMGBB_API_KEY)",
+      ORIGIN_NOT_ALLOWED: "❌ الدومين ده مش موجود في ALLOWED_ORIGINS",
+      AUTH_REQUIRED: "❌ انتهت جلسة الدخول — سجّل الدخول بحساب الأدمن مجددًا",
+      INVALID_TOKEN: "❌ انتهت جلسة الدخول — سجّل الدخول بحساب الأدمن مجددًا",
+      ADMIN_REQUIRED: "❌ الحساب ده مش أدمن نشط في Firestore",
+      ADMIN_CHECK_UNAVAILABLE: "❌ تعذر التحقق من صلاحية الأدمن — حاول مرة تانية",
+      AUTH_SERVICE_UNAVAILABLE: "❌ تعذر الوصول لخدمة Google للتحقق — حاول مرة تانية",
+      UNSUPPORTED_MEDIA_TYPE: "❌ نوع الطلب غير مدعوم",
+      NOT_ADMIN: "❌ الحساب ده مش أدمن نشط",
+      TITLE_REQUIRED: "⚠️ اكتب اسم الكورس قبل الحفظ",
+      VIDEO_CONTEXT_CHANGED: "⚠️ تغيّر الكورس المحدد؛ لم يُحفظ الدرس. اختار الكورس المقصود وحاول مجددًا."
+    };
+    function getErrorMessage(error, fallbackPrefix) {
+      const code = error?.message;
+      if (ERROR_MESSAGES[code]) return ERROR_MESSAGES[code];
+      console.error(fallbackPrefix, error);
+      return `❌ ${fallbackPrefix} — (${code || "UNKNOWN"})`;
+    }
+    async function uploadImageToImgBB(originalFile) {
+      if (!(originalFile instanceof File) || !originalFile.type.startsWith("image/") || originalFile.size > MAX_IMAGE_BYTES) {
         throw new Error("INVALID_IMAGE");
       }
+      const file = await compressImageForUpload(originalFile);
       const bytes = new Uint8Array(await file.arrayBuffer());
       let binary = "";
       const chunkSize = 0x8000;
@@ -699,7 +744,7 @@
         body: JSON.stringify({ image: btoa(binary), type: file.type })
       });
       const result = await response.json().catch(() => null);
-      if (!response.ok || !result?.success || !result?.data?.url) throw new Error("IMAGE_UPLOAD_FAILED");
+      if (!response.ok || !result?.success || !result?.data?.url) throw new Error(result?.error || "IMAGE_UPLOAD_FAILED");
       return cleanImageUrl(result.data.url);
     }
     async function resolveImageUrl(inputId, fileId, existingUrl = "", shouldApply = () => true) {
@@ -1180,13 +1225,7 @@ function svgIcon(name, className = "") {
         const imageUrl = await resolveImageUrl("cImage", "cImageFile", $("cImage").value);
         data = validateCourseForm(imageUrl);
       } catch (error) {
-        const message = error?.message === "INVALID_IMAGE"
-          ? "⚠️ اختر ملف صورة صحيحًا وحجمه أقل من 32 ميجابايت"
-          : error?.message === "IMAGE_UPLOAD_FAILED"
-            ? "❌ تعذر رفع الصورة — تحقق من الاتصال وإعدادات الرفع"
-            : error?.message === "AUTH_REQUIRED"
-              ? "❌ انتهت جلسة الدخول — سجّل الدخول بحساب الأدمن مجددًا"
-              : "⚠️ تأكد من إدخال اسم الكورس بشكل صحيح";
+        const message = getErrorMessage(error, "حدث خطأ أثناء حفظ الكورس");
         showMsg("panelMsg", message, false);
         button.disabled = false;
         return;
@@ -1435,15 +1474,7 @@ function svgIcon(name, className = "") {
         }
         await loadCourses();
       } catch (error) {
-        const message = error?.message === "VIDEO_CONTEXT_CHANGED"
-          ? "⚠️ تغيّر الكورس المحدد؛ لم يُحفظ الدرس. اختار الكورس المقصود وحاول مجددًا."
-          : error?.message === "INVALID_IMAGE"
-            ? "⚠️ اختر ملف صورة صحيحًا وحجمه أقل من 32 ميجابايت"
-            : error?.message === "IMAGE_UPLOAD_FAILED"
-              ? "❌ تعذر رفع الصورة — تحقق من الاتصال وإعدادات الرفع"
-              : error?.message === "AUTH_REQUIRED"
-                ? "❌ انتهت جلسة الدخول — سجّل الدخول بحساب الأدمن مجددًا"
-                : "❌ تعذر حفظ الدرس — راجع الاتصال وصلاحيات Firestore";
+        const message = getErrorMessage(error, "تعذر حفظ الدرس");
         showMsg("panelMsg", message, false);
       } finally {
         videoSaveInProgress = false;

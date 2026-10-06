@@ -19,7 +19,8 @@ function createResponse() {
     setHeader(key, value) { this.headers[key] = value; },
     status(code) { this.statusCode = code; return this; },
     json(payload) { this.body = payload; return this; },
-    send(payload) { this.body = payload; return this; }
+    send(payload) { this.body = payload; return this; },
+    end(payload) { if (payload !== undefined) this.body = payload; return this; }
   };
 }
 

@@ -107,11 +107,12 @@ module.exports = async function handler(request, response) {
 
   try {
     const { bytes, mimeType } = await fetchImageBytes(requestedUrl.href);
+    response.statusCode = 200;
     response.setHeader("Content-Type", mimeType);
     response.setHeader("Content-Length", bytes.length);
     response.setHeader("Cache-Control", SUCCESS_CACHE_HEADER);
     response.setHeader("Content-Disposition", "inline");
-    return response.status(200).send(bytes);
+    return response.end(bytes);
   } catch (error) {
     console.error("image-proxy: failed for", requestedUrl.host, error?.message);
     return sendJson(response, 502, { success: false, error: "IMAGE_FETCH_FAILED" }, ERROR_CACHE_HEADER);

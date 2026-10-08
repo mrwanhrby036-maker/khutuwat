@@ -104,6 +104,14 @@ function safeUrl(value, { hosts = null, allowPath = () => true } = {}) {
 function safeImageUrl(value) {
   return globalThis.KhutuwatImageHost.cleanImageUrl(value);
 }
+
+function buildImageProxyUrl(value) {
+  return globalThis.KhutuwatImageHost.buildImageProxyUrl(value);
+}
+
+function isDirectImageUrl(value) {
+  return globalThis.KhutuwatImageHost.isDirectImageUrl(value);
+}
  
 function sanitizeCourse(raw, id = "") {
   return {
@@ -190,15 +198,43 @@ document.addEventListener(
   },
   true
 );
- 
+
+// ===== سلسلة بدائل صورة الدرس/الكورس =====
+// 1) الرابط المباشر من موقع الصور (الأسرع)  2) وسيط السيرفر /api/image  3) أيقونة بدل صورة مكسورة
+function showThumbPlaceholder(img) {
+  const wrap = img.closest("[data-thumb-placeholder]");
+  if (!wrap) {
+    img.remove();
+    return;
+  }
+  const kind = wrap.dataset.thumbPlaceholder;
+  wrap.classList.remove("thumb-loading", "thumb-loaded", "lesson-thumb-imgbox");
+  wrap.classList.add("thumb-failed");
+  wrap.removeAttribute("data-thumb-placeholder");
+  wrap.innerHTML =
+    kind === "lesson"
+      ? `${svgIcon("play", "svg-icon-lesson")}<small>شاهد</small>`
+      : svgIcon("book", "svg-icon-large");
+}
+
 document.addEventListener(
   "error",
   (e) => {
     const img = e.target;
-    if (img?.tagName === "IMG") {
-      const wrap = img.closest(".thumb-loading");
-      if (wrap) wrap.classList.remove("thumb-loading");
+    if (img?.tagName !== "IMG") return;
+    // بنتعامل مع صور الكورسات والدروس بس، مش أي صورة تانية في الصفحة (زي الشعار)
+    const wrap = img.closest("[data-thumb-placeholder]");
+    if (!wrap) return;
+    wrap.classList.remove("thumb-loading");
+    const fallbackSrc = img.dataset.fallbackSrc;
+    if (fallbackSrc) {
+      // جرّب وسيط السيرفر قبل ما نستسلم — لو هو كمان فشل هنعرض أيقونة
+      delete img.dataset.fallbackSrc;
+      img.src = fallbackSrc;
+      wrap.classList.add("thumb-loading");
+      return;
     }
+    showThumbPlaceholder(img);
   },
   true
 );
@@ -492,18 +528,38 @@ function escapeHtml(t) {
 // ===== أيقونة/صورة الكورس: بتعرض imageUrl لو موجودة، وإلا إيموجي افتراضي =====
 // (الكورسات القديمة كانت بتتخزن بحقل icon، دلوقتي بتتخزن بحقل imageUrl)
 // أثناء تحميل الصورة بتتعرض شيمر سكيلتون وبتختفي أول ما الصورة توصل (onload)
+// بنجرّب الرابط المباشر الأول، ولو اتحجب (شبكة الزائر أو مانع إعلانات) أو الموقع رجّع
+// صفحة HTML مكان الصورة، بنرجع لوسيط السيرفر /api/image، ولو فشل برضه بنعرض أيقونة.
+function thumbImageSources(record) {
+  const imageUrl = safeImageUrl(record?.imageUrl);
+  if (!imageUrl) return null;
+  // روابط صفحات الصور (postimg.cc/xxx) مش صور مباشرة، فمينفعش تتحط في <img src> أصلاً
+  const directUrl = isDirectImageUrl(imageUrl) ? imageUrl : "";
+  const proxyUrl = buildImageProxyUrl(imageUrl);
+  const src = directUrl || proxyUrl;
+  if (!src) return null;
+  return { src, fallback: proxyUrl && proxyUrl !== src ? proxyUrl : "" };
+}
+
+function thumbImageHtml(record, className) {
+  const sources = thumbImageSources(record);
+  if (!sources) return "";
+  const fallbackAttr = sources.fallback ? ` data-fallback-src="${attr(sources.fallback)}"` : "";
+  return `<img class="${className}" src="${attr(sources.src)}"${fallbackAttr} alt="" style="${attr(imageStyleAttr(record))}" loading="lazy" referrerpolicy="no-referrer">`;
+}
+
 function courseThumbHtml(c) {
-  const imageUrl = safeImageUrl(c?.imageUrl);
-  return imageUrl
-    ? `<span class="course-thumb-frame thumb-loading"><img class="course-thumb-img" src="${attr(imageUrl)}" alt="" style="${attr(imageStyleAttr(c))}" loading="lazy" referrerpolicy="no-referrer"></span>`
+  const image = thumbImageHtml(c, "course-thumb-img");
+  return image
+    ? `<span class="course-thumb-frame thumb-loading" data-thumb-placeholder="book">${image}</span>`
     : svgIcon("book", "svg-icon-large");
 }
- 
+
 // ===== صورة الدرس: بتعرض صورة لو موجودة، وإلا مربع افتراضي =====
 function lessonThumbHtml(v) {
-  const imageUrl = safeImageUrl(v?.imageUrl);
-  return imageUrl
-    ? `<div class="lesson-thumb lesson-thumb-imgbox thumb-loading"><img src="${attr(imageUrl)}" alt="" style="${attr(imageStyleAttr(v))}" loading="lazy" referrerpolicy="no-referrer"></div>`
+  const image = thumbImageHtml(v, "lesson-thumb-img");
+  return image
+    ? `<div class="lesson-thumb lesson-thumb-imgbox thumb-loading" data-thumb-placeholder="lesson">${image}</div>`
     : `<div class="lesson-thumb">${svgIcon("play", "svg-icon-lesson")}<small>شاهد</small></div>`;
 }
  

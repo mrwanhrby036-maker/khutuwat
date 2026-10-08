@@ -2184,6 +2184,24 @@ body.revealed .hero-image {
   opacity: 1;
   transition: opacity 0.35s ease;
 }
+
+/* أيقونة بديلة لما كل مصادر صورة الكورس/الدرس تفشل — أفضل من علامة الصورة المكسورة */
+.thumb-failed {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--black-4);
+  color: var(--gold);
+}
+
+.thumb-failed .svg-icon-large {
+  width: 55%;
+  height: 55%;
+  max-width: 46px;
+  max-height: 46px;
+  filter: none;
+}
  
 @media (prefers-reduced-motion: reduce) {
   .skel::after,

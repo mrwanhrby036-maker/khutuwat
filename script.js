@@ -1324,7 +1324,7 @@ onAuthStateChanged(auth, (u) => {
 
   if (u) {
     // تتبع الأونلاين: كتابة عند تغيّر الحالة فقط + نبضة كل دقيقتين أثناء ظهور الصفحة
-    // (لوحة الأدمن تعتبر الطالب أونلاين لو آخر نبضة خلال 3 دقائق — راجع admin.html)
+    // (لوحة الأدمن تعتبر الطالب أونلاين لو آخر نبضة خلال 3 دقائق — راجع secure-dashboard-panel-8f4b.html)
     const PRESENCE_HEARTBEAT_MS = 120_000;
     let lastSentOnline = null;
     let loginRecorded = false;
@@ -1608,3 +1608,24 @@ async function loadPublicReviews() {
     list.innerHTML = '<p class="reviews-empty">التقييمات غير متاحة حاليًا.</p>';
   }
 }
+
+// ===== Light/Dark Mode Buttons Logic =====
+const darkModeBtn = document.getElementById("darkModeBtn");
+const lightModeBtn = document.getElementById("lightModeBtn");
+
+const currentTheme = localStorage.getItem("theme");
+if (currentTheme === "light") {
+  document.body.classList.add("light-mode");
+}
+
+darkModeBtn?.addEventListener("click", () => {
+  document.body.classList.remove("light-mode");
+  localStorage.setItem("theme", "night");
+  showToast("info", "🌙 الوضع الليلي", "تم تفعيل الوضع الليلي");
+});
+
+lightModeBtn?.addEventListener("click", () => {
+  document.body.classList.add("light-mode");
+  localStorage.setItem("theme", "light");
+  showToast("info", "☀️ الوضع النهاري", "تم تفعيل الوضع النهاري");
+});

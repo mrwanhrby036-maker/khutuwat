@@ -4,3 +4,15 @@ ALLOWED_ORIGINS=https://khutuwat.vercel.app
 POSTIMAGES_API_KEY=your_postimages_api_key
 # Optional gallery identifier from your Postimages account
 POSTIMAGES_GALLERY=
+
+# ===== Supabase (للقراءة/الكتابة بدل Firestore — لتقليل حدود Firebase) =====
+# رابط مشروع Supabase (مشروعك: dqfgkqzrtfqchxnlsmbo)
+SUPABASE_URL=https://dqfgkqzrtfqchxnlsmbo.supabase.co
+# المفتاح العام (publishable key) — قابل للنشر آمن للاستخدام في المتصفح مع RLS
+SUPABASE_ANON_KEY=sb_publishable_NZTysv7Xu9zvvpyLm5CLvw_3BD2-ypf
+# ★★★ الأهم: سر JWT (HS256 Shared Secret) — لازم يتطابق مع سر المشروع في Supabase ★★★
+#   1) هنا في Vercel (متغير SUPABASE_JWT_SECRET)
+#   2) في Supabase Dashboard → Settings → JWT Keys: اعمل Standby Key من نوع HS256 (Shared Secret)
+#      وخليه Current، وانسخ نفس السر هنا.
+# لو اتخبطوا، الـ token اللي بيصدره /api/supabase-session هيُرفض وRLS مش هتشتغل.
+SUPABASE_JWT_SECRET=__SET_ME_TO_THE_HS256_SHARED_SECRET__
